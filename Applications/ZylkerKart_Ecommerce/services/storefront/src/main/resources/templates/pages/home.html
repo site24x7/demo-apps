@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title th:text="${title}">ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+    <!-- Hero Banner Carousel -->
+    <div class="hero-carousel" id="heroCarousel">
+        <div class="hero-slides" id="heroSlides">
+            <div class="hero-slide" style="background: linear-gradient(135deg, #0073e6 0%, #004a99 100%);">
+                <div class="hero-text">
+                    <div class="label">Best Deal Online on Smart Watches</div>
+                    <h2>Smart Wearable.</h2>
+                    <div class="offer">UP TO 80% OFF</div>
+                </div>
+            </div>
+            <div class="hero-slide" style="background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);">
+                <div class="hero-text">
+                    <div class="label">Trending Fashion Collection</div>
+                    <h2>New Arrivals.</h2>
+                    <div class="offer">UP TO 60% OFF</div>
+                </div>
+            </div>
+            <div class="hero-slide" style="background: linear-gradient(135deg, #ff9800 0%, #f44336 100%);">
+                <div class="hero-text">
+                    <div class="label">Top Deals on Electronics</div>
+                    <h2>Mega Sale.</h2>
+                    <div class="offer">UP TO 70% OFF</div>
+                </div>
+            </div>
+            <div class="hero-slide" style="background: linear-gradient(135deg, #4caf50 0%, #00897b 100%);">
+                <div class="hero-text">
+                    <div class="label">Home &amp; Living Essentials</div>
+                    <h2>Home Makeover.</h2>
+                    <div class="offer">UP TO 50% OFF</div>
+                </div>
+            </div>
+        </div>
+        <button class="hero-arrow prev" onclick="heroSlide(-1)">&#10094;</button>
+        <button class="hero-arrow next" onclick="heroSlide(1)">&#10095;</button>
+        <div class="hero-dots" id="heroDots">
+            <span class="active" onclick="heroGo(0)"></span>
+            <span onclick="heroGo(1)"></span>
+            <span onclick="heroGo(2)"></span>
+            <span onclick="heroGo(3)"></span>
+        </div>
+    </div>
+
+    <!-- Grab the Best Deals Section -->
+    <th:block th:if="${products != null and !products.isEmpty()}">
+        <div class="section-header">
+            <div class="section-title">Grab the best deal on <em>Top Products</em></div>
+            <a href="/products" class="view-all">View All &#8250;</a>
+        </div>
+        <div class="product-scroll">
+            <a th:each="product : ${products}" th:href="'/products/' + ${product['productId']}" class="product-card">
+                <div class="discount-badge" th:if="${product['discount'] != null and product['discount'] > 0}" th:text="${product['discount']} + '% OFF'">10% OFF</div>
+                <img th:if="${product['images'] != null and !product['images'].isEmpty()}"
+                     th:src="${product['images'][0]}"
+                     th:alt="${product['productDescription']}" loading="lazy">
+                <img th:unless="${product['images'] != null and !product['images'].isEmpty()}"
+                     src="https://via.placeholder.com/200x180?text=No+Image" alt="No image">
+                <div class="info">
+                    <div class="brand" th:text="${product['title']}">Brand</div>
+                    <div class="name" th:text="${#strings.abbreviate(product['productDescription'] ?: '', 35)}">Description</div>
+                    <div class="price-row">
+                        <span class="price" th:text="${product['finalPrice'] ?: '$0'}">$0</span>
+                        <span class="original-price"
+                              th:if="${product['initialPrice'] != null and product['discount'] != null and product['discount'] > 0 and product['discount'] < 100}"
+                              th:text="'$' + ${product['initialPrice'] * 100 / (100 - product['discount'])}">$100</span>
+                    </div>
+                    <div class="save-text"
+                         th:if="${product['discount'] != null and product['discount'] > 0 and product['discount'] < 100 and product['initialPrice'] != null}"
+                         th:text="'Save - $' + ${product['initialPrice'] * 100 / (100 - product['discount']) - product['initialPrice']}">Save</div>
+                </div>
+            </a>
+        </div>
+    </th:block>
+
+    <!-- Shop From Top Categories -->
+    <th:block th:if="${categories != null and !categories.isEmpty()}">
+        <div class="section-header">
+            <div class="section-title">Shop From <em>Top Categories</em></div>
+            <a href="/products" class="view-all">View All &#8250;</a>
+        </div>
+        <div class="category-circles">
+            <a th:each="cat : ${categories}" th:href="'/products?category=' + ${cat['name']}" class="cat-circle">
+                <div class="circle-img">
+                    <span style="font-size: 32px;"
+                          th:text="${cat['name'] == 'Electronics' ? '💻' : (cat['name'] == 'MensClothing' ? '👔' : (cat['name'] == 'WomensClothing' ? '👗' : (cat['name'] == 'Footwear' ? '👟' : (cat['name'] == 'BeautyAndPersonalCare' ? '💄' : (cat['name'] == 'HomeAndLiving' ? '🛋️' : (cat['name'] == 'BagsAndWallets' ? '👜' : (cat['name'] == 'Jewelry' ? '💍' : (cat['name'] == 'WatchesAndEyewear' ? '⌚' : (cat['name'] == 'FashionAccessories' ? '🧣' : (cat['name'] == 'SportsAndFitness' ? '🏃' : (cat['name'] == 'UnisexClothing' ? '👕' : '🛒')))))))))))}"
+                    >🛒</span>
+                </div>
+                <span th:text="${cat['name']}">Category</span>
+            </a>
+        </div>
+    </th:block>
+
+    <!-- Top Brands Section -->
+    <div class="section-header">
+        <div class="section-title">Top <em>Brands</em></div>
+        <a href="/products" class="view-all">View All &#8250;</a>
+    </div>
+    <div class="brand-scroll">
+        <a href="/products?category=Electronics" class="brand-card" style="background: linear-gradient(135deg, #1a237e, #283593); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">ELECTRONICS</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">💻</div>
+                <div class="brand-offer">UP TO 80% OFF</div>
+            </div>
+        </a>
+        <a href="/products?category=WomensClothing" class="brand-card" style="background: linear-gradient(135deg, #880e4f, #ad1457); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">FASHION</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">👗</div>
+                <div class="brand-offer">UP TO 70% OFF</div>
+            </div>
+        </a>
+        <a href="/products?category=SportsAndFitness" class="brand-card" style="background: linear-gradient(135deg, #1b5e20, #2e7d32); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">SPORTS</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">🏃</div>
+                <div class="brand-offer">UP TO 60% OFF</div>
+            </div>
+        </a>
+        <a href="/products?category=HomeAndLiving" class="brand-card" style="background: linear-gradient(135deg, #e65100, #f57c00); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">HOME &amp; LIVING</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">🛋️</div>
+                <div class="brand-offer">UP TO 50% OFF</div>
+            </div>
+        </a>
+        <a href="/products?category=BeautyAndPersonalCare" class="brand-card" style="background: linear-gradient(135deg, #4a148c, #7b1fa2); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">BEAUTY</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">💄</div>
+                <div class="brand-offer">UP TO 65% OFF</div>
+            </div>
+        </a>
+        <a href="/products?category=Footwear" class="brand-card" style="background: linear-gradient(135deg, #004d40, #00695c); min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div class="brand-label">FOOTWEAR</div>
+            <div style="color: #fff; text-align: center; padding: 20px;">
+                <div style="font-size: 42px; margin-bottom: 10px;">👟</div>
+                <div class="brand-offer">UP TO 55% OFF</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- More Products Section -->
+    <th:block th:if="${moreProducts != null and !moreProducts.isEmpty()}">
+        <div class="section-header">
+            <div class="section-title">Daily <em>Essentials</em></div>
+            <a href="/products" class="view-all">View All &#8250;</a>
+        </div>
+        <div class="product-scroll">
+            <a th:each="product : ${moreProducts}" th:href="'/products/' + ${product['productId']}" class="product-card">
+                <div class="discount-badge" th:if="${product['discount'] != null and product['discount'] > 0}" th:text="${product['discount']} + '% OFF'">10% OFF</div>
+                <img th:if="${product['images'] != null and !product['images'].isEmpty()}"
+                     th:src="${product['images'][0]}"
+                     th:alt="${product['productDescription']}" loading="lazy">
+                <img th:unless="${product['images'] != null and !product['images'].isEmpty()}"
+                     src="https://via.placeholder.com/200x180?text=No+Image" alt="No image">
+                <div class="info">
+                    <div class="brand" th:text="${product['title']}">Brand</div>
+                    <div class="name" th:text="${#strings.abbreviate(product['productDescription'] ?: '', 35)}">Description</div>
+                    <div class="price-row">
+                        <span class="price" th:text="${product['finalPrice'] ?: '$0'}">$0</span>
+                        <span class="original-price"
+                              th:if="${product['initialPrice'] != null and product['discount'] != null and product['discount'] > 0 and product['discount'] < 100}"
+                              th:text="'$' + ${product['initialPrice'] * 100 / (100 - product['discount'])}">$100</span>
+                    </div>
+                    <div class="save-text"
+                         th:if="${product['discount'] != null and product['discount'] > 0 and product['discount'] < 100 and product['initialPrice'] != null}"
+                         th:text="'Save - $' + ${product['initialPrice'] * 100 / (100 - product['discount']) - product['initialPrice']}">Save</div>
+                </div>
+            </a>
+        </div>
+    </th:block>
+
+    <div th:if="${products != null and products.size() >= 10}" style="text-align: center; margin: 40px 0 20px;">
+        <a href="/products" class="btn-primary" style="text-decoration: none; padding: 14px 40px; font-size: 16px;">View All Products</a>
+    </div>
+
+    <!-- Hero Carousel JS -->
+    <script>
+    var heroIdx = 0;
+    var heroTotal = document.querySelectorAll('.hero-slide').length;
+
+    function heroGo(i) {
+        heroIdx = i;
+        document.getElementById('heroSlides').style.transform = 'translateX(-' + (heroIdx * 100) + '%)';
+        document.querySelectorAll('#heroDots span').forEach(function(d, idx) { d.classList.toggle('active', idx === heroIdx); });
+    }
+
+    function heroSlide(dir) {
+        heroGo((heroIdx + dir + heroTotal) % heroTotal);
+    }
+
+    setInterval(function() { heroSlide(1); }, 4000);
+    </script>
+</div>
+</body>
+</html>

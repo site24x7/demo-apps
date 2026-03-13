@@ -1,0 +1,68 @@
+{
+  "name": "@site24x7-labs/chaos-sdk",
+  "version": "1.0.0",
+  "description": "Site24x7 Labs Chaos SDK for Node.js — file-based fault injection for Express, Fastify, and more",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./express": {
+      "import": "./dist/express/middleware.js",
+      "types": "./dist/express/middleware.d.ts"
+    },
+    "./fastify": {
+      "import": "./dist/fastify/plugin.js",
+      "types": "./dist/fastify/plugin.d.ts"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "chaos-engineering",
+    "fault-injection",
+    "site24x7",
+    "express",
+    "fastify",
+    "testing",
+    "resilience"
+  ],
+  "author": "Site24x7 Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0",
+    "fastify": ">=4.0.0",
+    "axios": ">=1.0.0",
+    "pg": ">=8.0.0",
+    "mysql2": ">=3.0.0",
+    "ioredis": ">=5.0.0",
+    "redis": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": { "optional": true },
+    "fastify": { "optional": true },
+    "axios": { "optional": true },
+    "pg": { "optional": true },
+    "mysql2": { "optional": true },
+    "ioredis": { "optional": true },
+    "redis": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
+    "@types/express": "^4.17.21",
+    "@types/pg": "^8.10.0"
+  }
+}

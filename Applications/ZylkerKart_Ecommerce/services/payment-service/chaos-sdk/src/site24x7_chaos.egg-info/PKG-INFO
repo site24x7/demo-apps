@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: site24x7-chaos
+Version: 1.0.0
+Summary: Site24x7 Labs Chaos SDK for Python — inject realistic faults into Flask and FastAPI applications
+Author: Site24x7 Labs
+License: Proprietary
+Requires-Python: >=3.9
+Provides-Extra: flask
+Requires-Dist: flask>=2.0; extra == "flask"
+Provides-Extra: fastapi
+Requires-Dist: fastapi>=0.68; extra == "fastapi"
+Requires-Dist: starlette>=0.14; extra == "fastapi"
+Provides-Extra: sqlalchemy
+Requires-Dist: sqlalchemy>=1.4; extra == "sqlalchemy"
+Provides-Extra: redis
+Requires-Dist: redis>=4.0; extra == "redis"
+Provides-Extra: requests
+Requires-Dist: requests>=2.20; extra == "requests"
+Provides-Extra: httpx
+Requires-Dist: httpx>=0.23; extra == "httpx"
+Provides-Extra: all
+Requires-Dist: flask>=2.0; extra == "all"
+Requires-Dist: fastapi>=0.68; extra == "all"
+Requires-Dist: starlette>=0.14; extra == "all"
+Requires-Dist: sqlalchemy>=1.4; extra == "all"
+Requires-Dist: redis>=4.0; extra == "all"
+Requires-Dist: requests>=2.20; extra == "all"
+Requires-Dist: httpx>=0.23; extra == "all"

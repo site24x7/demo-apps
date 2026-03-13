@@ -1,0 +1,67 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.classpath
+.factorypath
+.project
+.settings/
+
+# Java
+services/product-service/target/
+*.class
+*.jar
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Go
+services/search-service/search-service
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# .NET
+services/auth-service/bin/
+services/auth-service/obj/
+
+# Docker
+*.log
+
+# MySQL data
+mysql-data/
+
+# Go binaries (all)
+services/search-service/search-service-amd64
+services/search-service/bin/
+
+# .NET chaos-sdk build artifacts
+services/auth-service/chaos-sdk/bin/
+services/auth-service/chaos-sdk/obj/
+
+# Java chaos-sdk build artifacts
+**/chaos-sdk/**/target/
+
+# JS/TS chaos-sdk compiled output
+services/order-service/chaos-sdk/dist/
+
+# Storefront target
+services/storefront/target/
+
+# Backup files
+*.bak

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <RootNamespace>Site24x7.Chaos</RootNamespace>
+    <AssemblyName>Site24x7.Chaos</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Site24x7 Labs</Authors>
+    <Description>Chaos Engineering SDK for .NET — inject faults into ASP.NET Core applications for resilience testing.</Description>
+    <PackageId>Site24x7.Chaos</PackageId>
+    <PackageTags>chaos-engineering;fault-injection;resilience;testing;site24x7</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" Version="2.7.*" />
+    <PackageReference Include="System.Text.Json" Version="8.0.*" />
+  </ItemGroup>
+
+</Project>
