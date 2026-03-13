@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title>Checkout - ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+<style>
+    .checkout-layout { display: grid; grid-template-columns: 3fr 2fr; gap: 30px; margin-top: 10px; }
+    .checkout-col h2 { font-size: 18px; margin-bottom: 15px; color: #333; }
+    .checkout-form-group { margin-bottom: 16px; }
+    .checkout-form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    .checkout-form-group input, .checkout-form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .checkout-form-group input:focus, .checkout-form-group select:focus { border-color: #0073e6; outline: none; }
+    .checkout-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkout-payment-methods { margin-top: 10px; }
+    .checkout-payment-option { display: flex; align-items: center; padding: 14px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s; }
+    .checkout-payment-option:hover, .checkout-payment-option.selected { border-color: #0073e6; background: #f8fbff; }
+    .checkout-payment-option input[type="radio"] { margin-right: 12px; accent-color: #0073e6; }
+    .checkout-payment-label { font-weight: 500; font-size: 14px; }
+    .checkout-payment-desc { font-size: 12px; color: #999; margin-top: 2px; }
+
+    /* Card form accordion */
+    .card-form-wrap { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, padding 0.3s ease; padding: 0 14px; }
+    .card-form-wrap.open { opacity: 1; padding: 16px 14px 10px; }
+    .card-form-wrap .checkout-form-group { margin-bottom: 12px; }
+    .card-form-wrap .checkout-form-group label { font-size: 12px; color: #555; margin-bottom: 4px; display: block; font-weight: 500; }
+    .card-form-wrap .checkout-form-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .card-form-wrap .checkout-form-group input:focus { border-color: #0073e6; outline: none; }
+    .card-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .card-icons { display: flex; gap: 6px; margin-bottom: 12px; }
+    .card-icons img { height: 24px; opacity: 0.5; border-radius: 3px; }
+    .card-icons img.active { opacity: 1; }
+
+    .checkout-order-summary { background: #fafafa; border-radius: 8px; padding: 24px; border: 1px solid #eee; height: fit-content; position: sticky; top: 100px; }
+    .checkout-order-summary h2 { margin: 0 0 16px; font-size: 16px; text-transform: uppercase; color: #888; }
+    .checkout-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .checkout-item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+    .checkout-item-info { flex: 1; min-width: 0; }
+    .checkout-item-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .checkout-item-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .checkout-item-price { font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .checkout-price-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+    .checkout-price-total { display: flex; justify-content: space-between; padding: 12px 0; font-weight: 600; font-size: 16px; border-top: 2px solid #ddd; margin-top: 8px; }
+    .checkout-place-btn { width: 100%; padding: 16px; background: #0073e6; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+    .checkout-place-btn:hover { background: #005bb5; }
+    .checkout-place-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .checkout-empty { text-align: center; padding: 60px 20px; }
+    .checkout-empty h2 { margin-bottom: 10px; }
+    .checkout-empty p { color: #888; margin-bottom: 20px; }
+
+    /* Order Popup */
+    .order-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+    .order-overlay.active { display: flex; }
+    .order-popup { background: #fff; border-radius: 12px; padding: 40px; max-width: 420px; width: 90%; text-align: center; animation: popIn 0.3s; }
+    @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .order-popup-icon { font-size: 56px; margin-bottom: 16px; }
+    .order-popup h2 { margin: 0 0 8px; font-size: 22px; }
+    .order-popup p { color: #666; font-size: 14px; margin: 0 0 6px; }
+    .order-popup-id { font-size: 13px; color: #999; margin: 10px 0; }
+    .order-popup-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .order-popup-actions a { padding: 12px 28px; border-radius: 6px; font-size: 14px; text-decoration: none; font-weight: 600; }
+    .order-popup-btn-primary { background: #0073e6; color: #fff; }
+    .order-popup-btn-secondary { background: #f5f5f5; color: #333; }
+
+    @media (max-width: 768px) {
+        .checkout-layout { grid-template-columns: 1fr; }
+        .checkout-order-summary { position: static; }
+        .checkout-form-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+        .checkout-col h2 { font-size: 16px; }
+        .checkout-place-btn { font-size: 15px; padding: 14px; }
+        .order-popup { padding: 28px 20px; }
+        .order-popup h2 { font-size: 18px; }
+    }
+</style>
+
+<!-- Order Popup Overlay -->
+<div class="order-overlay" id="orderOverlay">
+    <div class="order-popup">
+        <div class="order-popup-icon" id="orderPopupIcon">&#10004;&#65039;</div>
+        <h2 id="orderPopupTitle">Order Placed!</h2>
+        <p id="orderPopupMessage">Your order has been placed successfully.</p>
+        <div class="order-popup-id" id="orderPopupId"></div>
+        <div class="order-popup-actions" id="orderPopupActions">
+            <a href="/orders" class="order-popup-btn-primary">View Orders</a>
+            <a href="/products" class="order-popup-btn-secondary">Continue Shopping</a>
+        </div>
+    </div>
+</div>
+
+<th:block th:if="${cart == null or cart['items'] == null or cart['items'].isEmpty()}">
+    <div class="checkout-empty">
+        <h2>Your cart is empty</h2>
+        <p>Add items to proceed with checkout.</p>
+        <a href="/products" class="btn-primary" style="display: inline-block; text-decoration: none; padding: 14px 30px;">Browse Products</a>
+    </div>
+</th:block>
+
+<th:block th:if="${cart != null and cart['items'] != null and !cart['items'].isEmpty()}">
+    <div class="checkout-layout">
+        <!-- Checkout Form -->
+        <div class="checkout-col">
+            <h2>Delivery Address</h2>
+            <div class="checkout-form-row">
+                <div class="checkout-form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" placeholder="John Doe" th:value="${user != null ? user['fullName'] : ''}" required>
+                </div>
+                <div class="checkout-form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" placeholder="Enter phone number" th:value="${user != null ? user['phone'] : ''}" required>
+                </div>
+            </div>
+            <div class="checkout-form-group">
+                <label for="address">Address</label>
+                <input type="text" id="address" placeholder="House No, Street, Area" required>
+            </div>
+            <div class="checkout-form-row">
+                <div class="checkout-form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" placeholder="City" required>
+                </div>
+                <div class="checkout-form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" placeholder="State" required>
+                </div>
+            </div>
+            <div class="checkout-form-row">
+                <div class="checkout-form-group">
+                    <label for="pincode">PIN Code</label>
+                    <input type="text" id="pincode" placeholder="000000" maxlength="6" required>
+                </div>
+                <div class="checkout-form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="you@example.com" th:value="${user != null ? user['email'] : ''}" required>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 30px;">Payment Method</h2>
+            <div class="checkout-payment-methods">
+                <div class="checkout-payment-option-wrap">
+                    <label class="checkout-payment-option selected">
+                        <input type="radio" name="payment" value="credit_card" checked>
+                        <div>
+                            <div class="checkout-payment-label">&#128179; Credit/Debit Card</div>
+                            <div class="checkout-payment-desc">Visa, MasterCard, RuPay</div>
+                        </div>
+                    </label>
+                    <div class="card-form-wrap open" id="cardFormWrap">
+                        <div class="card-icons">
+                            <svg width="38" height="24" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="3" fill="#1A1F71"/><path d="M15.3 16.5l2.3-9h2.5l-2.3 9h-2.5zm10.2-9l-2.4 6.2-.3-1.4-.9-4.1s-.1-.7-.9-.7h-3.6l-.1.2s.9.2 2 .8l2.4 8.9h2.6l4-9.9h-2.8zm-16 0l-2.5 9h2.5l.8-3.2h2.8c.1 0 .4.2.4.6l.6 2.6h2.4l-.7-3s-.3-.7-1-.8c.9-.3 1.7-1.2 1.7-2.4 0-1.8-1.3-2.8-3.2-2.8h-3.8zm1.4 1.9h1.7c.7 0 1.3.4 1.3 1.1 0 .8-.6 1.3-1.4 1.3h-1.9l.3-2.4z" fill="#fff"/></svg>
+                            <svg width="38" height="24" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="3" fill="#fff" stroke="#ddd"/><circle cx="15" cy="12" r="7" fill="#EB001B"/><circle cx="23" cy="12" r="7" fill="#F79E1B"/><path d="M19 7.3a7 7 0 0 1 2.6 4.7A7 7 0 0 1 19 16.7a7 7 0 0 1-2.6-4.7A7 7 0 0 1 19 7.3z" fill="#FF5F00"/></svg>
+                        </div>
+                        <div class="checkout-form-group">
+                            <label for="cardNumber">Card Number</label>
+                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number">
+                        </div>
+                        <div class="checkout-form-group">
+                            <label for="cardName">Name on Card</label>
+                            <input type="text" id="cardName" placeholder="John Doe" autocomplete="cc-name">
+                        </div>
+                        <div class="card-form-row">
+                            <div class="checkout-form-group">
+                                <label for="cardExpiry">Expiry Date</label>
+                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp">
+                            </div>
+                            <div class="checkout-form-group">
+                                <label for="cardCvv">CVV</label>
+                                <input type="password" id="cardCvv" placeholder="&bull;&bull;&bull;" maxlength="4" autocomplete="cc-csc">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="checkout-payment-option-wrap">
+                    <label class="checkout-payment-option">
+                        <input type="radio" name="payment" value="bank_transfer">
+                        <div>
+                            <div class="checkout-payment-label">&#127974; Bank Transfer</div>
+                            <div class="checkout-payment-desc">Direct bank account transfer</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="checkout-order-summary">
+            <h2>Order Summary</h2>
+            <div th:each="item : ${cart['items']}" class="checkout-item">
+                <img th:src="${item['image'] ?: 'https://via.placeholder.com/60x60?text=Product'}" class="checkout-item-img">
+                <div class="checkout-item-info">
+                    <div class="checkout-item-name" th:text="${item['title'] ?: 'Product'}">Product</div>
+                    <div class="checkout-item-meta" th:text="'Qty: ' + ${item['quantity'] ?: 1}">Qty: 1</div>
+                </div>
+                <div class="checkout-item-price" th:text="'$' + ${item['price'] ?: '0'}">$0</div>
+            </div>
+            <div id="checkoutPriceSummary"></div>
+            <button class="checkout-place-btn" id="placeOrderBtn" onclick="placeOrder()">
+                Place Order
+            </button>
+        </div>
+    </div>
+</th:block>
+
+<script th:inline="javascript">
+var cartData = [[${cart}]];
+
+// Render price summary
+(function() {
+    if (!cartData || !cartData.items || !cartData.items.length) return;
+    var totalItems = 0, totalPrice = 0;
+    cartData.items.forEach(function(item) {
+        var qty = item.quantity || 1;
+        var price = parseFloat(item.price || 0);
+        totalItems += qty;
+        totalPrice += price * qty;
+    });
+    var deliveryFee = totalPrice > 499 ? 0 : 49;
+    var grandTotal = totalPrice + deliveryFee;
+    var el = document.getElementById('checkoutPriceSummary');
+    if (el) {
+        el.innerHTML =
+            '<div class="checkout-price-row"><span>Price (' + totalItems + ' items)</span><span>$' + totalPrice.toFixed(2) + '</span></div>' +
+            '<div class="checkout-price-row"><span>Delivery Fee</span><span style="color:' + (deliveryFee === 0 ? '#4caf50' : '#333') + '">' + (deliveryFee === 0 ? 'FREE' : '$' + deliveryFee) + '</span></div>' +
+            '<div class="checkout-price-total"><span>Total</span><span>$' + grandTotal.toFixed(2) + '</span></div>';
+    }
+})();
+
+// Payment method highlight
+// Payment option switching with card form accordion
+(function() {
+    var cardWrap = document.getElementById('cardFormWrap');
+    // Initial open state — credit_card is selected by default
+    if (cardWrap) {
+        cardWrap.style.maxHeight = cardWrap.scrollHeight + 'px';
+    }
+
+    function formatCardNumber(e) {
+        var v = e.target.value.replace(/\D/g, '').substring(0, 16);
+        e.target.value = v.replace(/(\d{4})(?=\d)/g, '$1 ');
+    }
+    function formatExpiry(e) {
+        var v = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (v.length >= 3) v = v.substring(0, 2) + '/' + v.substring(2);
+        e.target.value = v;
+    }
+    var cardNumInput = document.getElementById('cardNumber');
+    var expiryInput = document.getElementById('cardExpiry');
+    if (cardNumInput) cardNumInput.addEventListener('input', formatCardNumber);
+    if (expiryInput) expiryInput.addEventListener('input', formatExpiry);
+
+    function toggleCardForm(show) {
+        if (!cardWrap) return;
+        if (show) {
+            cardWrap.classList.add('open');
+            cardWrap.style.maxHeight = cardWrap.scrollHeight + 'px';
+            cardWrap.addEventListener('transitionend', function handler() {
+                if (cardWrap.classList.contains('open')) cardWrap.style.maxHeight = 'none';
+                cardWrap.removeEventListener('transitionend', handler);
+            });
+        } else {
+            cardWrap.style.maxHeight = cardWrap.scrollHeight + 'px';
+            requestAnimationFrame(function() {
+                cardWrap.style.maxHeight = '0';
+                cardWrap.style.paddingTop = '0';
+                cardWrap.style.paddingBottom = '0';
+            });
+            cardWrap.classList.remove('open');
+        }
+    }
+
+    document.querySelectorAll('.checkout-payment-option').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+            document.querySelectorAll('.checkout-payment-option').forEach(function(o) { o.classList.remove('selected'); });
+            opt.classList.add('selected');
+            var radio = opt.querySelector('input[type="radio"]');
+            toggleCardForm(radio && radio.value === 'credit_card');
+        });
+    });
+})();
+
+function getSessionId() {
+    return document.querySelector('meta[name="cart-session"]').content;
+}
+
+function placeOrder() {
+    var btn = document.getElementById('placeOrderBtn');
+    var fullName = document.getElementById('fullName').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var address = document.getElementById('address').value.trim();
+    var city = document.getElementById('city').value.trim();
+    var state = document.getElementById('state').value.trim();
+    var pincode = document.getElementById('pincode').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var payment = document.querySelector('input[name="payment"]:checked');
+
+    if (!fullName || !phone || !address || !city || !state || !pincode || !email) {
+        showToast('Please fill all fields', 3000);
+        return;
+    }
+
+    btn.textContent = 'Placing Order...';
+    btn.disabled = true;
+
+    fetch('/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sessionId: getSessionId(),
+            fullName: fullName,
+            phone: phone,
+            address: address + ', ' + city + ', ' + state + ' - ' + pincode,
+            email: email,
+            paymentMethod: payment ? payment.value : 'cod'
+        })
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('orderPopupIcon').innerHTML = '&#10004;&#65039;';
+            document.getElementById('orderPopupTitle').textContent = 'Order Placed Successfully!';
+            document.getElementById('orderPopupMessage').textContent = 'Thank you for shopping with ZylkerKart.';
+            document.getElementById('orderPopupId').textContent = data.orderId ? 'Order #' + data.orderId : '';
+            document.getElementById('orderPopupActions').innerHTML =
+                '<a href="/orders" class="order-popup-btn-primary">View My Orders</a>' +
+                '<a href="/products" class="order-popup-btn-secondary">Continue Shopping</a>';
+            updateCartBadge(0);
+        } else {
+            document.getElementById('orderPopupIcon').innerHTML = '&#10060;';
+            document.getElementById('orderPopupTitle').textContent = 'Order Failed';
+            document.getElementById('orderPopupMessage').textContent = data.message || 'Something went wrong. Please try again.';
+            document.getElementById('orderPopupId').textContent = '';
+            document.getElementById('orderPopupActions').innerHTML =
+                '<a href="javascript:void(0)" onclick="document.getElementById(\'orderOverlay\').classList.remove(\'active\')" class="order-popup-btn-secondary">Try Again</a>';
+            btn.textContent = 'Place Order';
+            btn.disabled = false;
+        }
+        document.getElementById('orderOverlay').classList.add('active');
+    })
+    .catch(function(err) {
+        document.getElementById('orderPopupIcon').innerHTML = '&#10060;';
+        document.getElementById('orderPopupTitle').textContent = 'Error';
+        document.getElementById('orderPopupMessage').textContent = err.message;
+        document.getElementById('orderPopupId').textContent = '';
+        document.getElementById('orderPopupActions').innerHTML =
+            '<a href="javascript:void(0)" onclick="document.getElementById(\'orderOverlay\').classList.remove(\'active\')" class="order-popup-btn-secondary">Close</a>';
+        document.getElementById('orderOverlay').classList.add('active');
+        btn.textContent = 'Place Order';
+        btn.disabled = false;
+    });
+}
+</script>
+</div>
+</body>
+</html>

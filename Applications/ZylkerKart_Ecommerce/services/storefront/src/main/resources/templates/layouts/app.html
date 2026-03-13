@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="cart-session" th:content="${sessionId}">
+    <title th:text="${title} ?: 'ZylkerKart'">ZylkerKart</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+        /* === TOP BAR === */
+        .top-bar { background: #1a1a2e; color: #ccc; font-size: 12px; padding: 6px 0; }
+        .top-bar-inner { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar a { color: #aaa; text-decoration: none; margin-left: 18px; }
+        .top-bar a:hover { color: #fff; }
+
+        /* === HEADER === */
+        .header { background: #fff; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .header-inner { max-width: 1400px; margin: 0 auto; padding: 10px 20px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; }
+        .logo { font-size: 26px; font-weight: 800; color: #0073e6; text-decoration: none; letter-spacing: -0.5px; white-space: nowrap; justify-self: start; }
+        .logo span { color: #ff9800; }
+        .search-bar { position: relative; width: 100%; justify-self: stretch; }
+        .search-bar input { width: 100%; padding: 11px 44px 11px 16px; border: 2px solid #0073e6; border-radius: 6px; font-size: 14px; outline: none; background: #f8f9fa; transition: border-color 0.2s; }
+        .search-bar input:focus { border-color: #005bb5; background: #fff; }
+        .search-bar button { position: absolute; right: 0; top: 0; bottom: 0; width: 44px; background: #0073e6; border: none; border-radius: 0 6px 6px 0; cursor: pointer; color: #fff; font-size: 18px; }
+        .search-bar button:hover { background: #005bb5; }
+        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 999; display: none; max-height: 380px; overflow-y: auto; }
+        .autocomplete-dropdown.show { display: block; }
+        .ac-section-label { padding: 8px 14px 4px; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ac-item { padding: 9px 14px; cursor: pointer; font-size: 14px; color: #333; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+        .ac-item:hover, .ac-item.ac-active { background: #f0f4ff; }
+        .ac-item .ac-icon { color: #aaa; font-size: 14px; width: 18px; text-align: center; }
+        .ac-item .ac-text { flex: 1; }
+        .ac-item .ac-text mark { background: none; color: #0073e6; font-weight: 600; }
+        .ac-item .ac-category { font-size: 11px; color: #888; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
+        .header-actions { display: flex; align-items: center; gap: 20px; white-space: nowrap; justify-self: end; }
+        .header-actions a, .header-actions button { text-decoration: none; font-size: 14px; font-weight: 500; color: #333; display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; }
+        .header-actions a:hover, .header-actions button:hover { color: #0073e6; }
+        .header-actions .cart-icon { position: relative; font-size: 15px; }
+        #cart-badge { display: none; position: absolute; top: -8px; right: -12px; background: #e91e63; color: #fff; border-radius: 50%; padding: 1px 6px; font-size: 10px; font-weight: 700; line-height: 1.4; }
+        .header-actions .btn-signup { background: #0073e6; color: #fff !important; padding: 7px 18px; border-radius: 6px; font-weight: 600; }
+        .header-actions .btn-signup:hover { background: #005bb5; }
+
+        /* === ORDER DROPDOWN === */
+        .user-dropdown-wrap { position: relative; }
+        .order-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 440px; max-height: 520px; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); z-index: 500; overflow: hidden; border: 1px solid #e0e0e0; }
+        .order-dropdown.show { display: block; }
+        .order-dropdown::before { content: ''; position: absolute; top: -6px; right: 18px; width: 12px; height: 12px; background: #fff; border-left: 1px solid #e0e0e0; border-top: 1px solid #e0e0e0; transform: rotate(45deg); z-index: 1; }
+        .od-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; }
+        .od-header h3 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin: 0; }
+        .od-header a { font-size: 13px; color: #0073e6; text-decoration: none; font-weight: 500; }
+        .od-header a:hover { text-decoration: underline; }
+        .od-body { overflow-y: auto; max-height: 400px; padding: 0; }
+        .od-loading { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
+        .od-empty { text-align: center; padding: 40px 20px; color: #999; }
+        .od-empty .od-empty-icon { font-size: 40px; margin-bottom: 8px; }
+        .od-empty p { font-size: 14px; margin: 0; }
+        .od-order { border-bottom: 1px solid #f0f0f0; }
+        .od-order:last-child { border-bottom: none; }
+        .od-order-header { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.15s; }
+        .od-order-header:hover { background: #f8f9fa; }
+        .od-order-left { flex: 1; }
+        .od-order-id { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .od-order-date { font-size: 12px; color: #999; margin-top: 2px; }
+        .od-order-right { text-align: right; display: flex; align-items: center; gap: 10px; }
+        .od-order-amount { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+        .od-status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+        .od-status.confirmed, .od-status.success { background: #e8f5e9; color: #2e7d32; }
+        .od-status.pending, .od-status.processing { background: #fff3e0; color: #e65100; }
+        .od-status.failed, .od-status.cancelled { background: #fce4ec; color: #c62828; }
+        .od-status.shipped, .od-status.delivered { background: #e3f2fd; color: #1565c0; }
+        .od-status.refunded { background: #f3e5f5; color: #7b1fa2; }
+        .od-chevron { font-size: 12px; color: #bbb; transition: transform 0.3s ease; }
+        .od-order.expanded .od-chevron { transform: rotate(180deg); }
+        .od-order-details { max-height: 0; overflow: hidden; opacity: 0; padding: 0 20px; border-top: 1px solid transparent; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.35s ease, border-color 0.2s ease; }
+        .od-order.expanded .od-order-details { opacity: 1; padding: 0 20px 14px; border-top-color: #f5f5f5; }
+        .od-items-table { width: 100%; font-size: 13px; margin-top: 10px; border-collapse: collapse; }
+        .od-items-table th { text-align: left; font-weight: 600; color: #999; font-size: 11px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #eee; }
+        .od-items-table td { padding: 8px; vertical-align: middle; border-bottom: 1px solid #f5f5f5; }
+        .od-items-table .od-item-img { width: 36px; height: 36px; object-fit: contain; border-radius: 4px; background: #f8f8f8; }
+        .od-items-table .od-item-title { font-weight: 500; color: #333; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .od-txn { margin-top: 12px; padding: 10px 12px; background: #f8f9fa; border-radius: 8px; font-size: 12px; }
+        .od-txn-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .od-txn-row:last-child { margin-bottom: 0; }
+        .od-txn-label { color: #999; font-weight: 500; }
+        .od-txn-value { color: #333; font-weight: 600; font-family: 'Courier New', monospace; }
+        .od-pagination { padding: 12px 20px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8f9fa; }
+        .od-pagination button { padding: 6px 14px; border: 1px solid #ddd; border-radius: 6px; background: #fff; font-size: 12px; font-weight: 500; cursor: pointer; color: #333; transition: all 0.15s; }
+        .od-pagination button:hover:not(:disabled) { background: #0073e6; color: #fff; border-color: #0073e6; }
+        .od-pagination button:disabled { opacity: 0.4; cursor: default; }
+        .od-pagination .od-page-info { font-size: 12px; color: #999; }
+
+        /* === MOBILE HAMBURGER === */
+        .mobile-menu-btn { display: none !important; background: none; border: none; font-size: 26px; cursor: pointer; color: #333; padding: 4px 8px; line-height: 1; }
+        .mobile-only { display: none !important; }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
+        .mobile-overlay.open { display: block; }
+        .mobile-drawer { position: fixed; top: 0; right: -300px; width: 280px; max-width: 80vw; height: 100%; background: #fff; z-index: 201; transition: right 0.3s ease; box-shadow: -4px 0 20px rgba(0,0,0,0.15); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .mobile-drawer.open { right: 0; }
+        .mobile-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #eee; background: #f8f9fa; }
+        .mobile-drawer-header .logo { font-size: 20px; }
+        .mobile-drawer-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 4px; }
+        .mobile-drawer-nav { padding: 12px 0; }
+        .mobile-drawer-nav a { display: flex; align-items: center; gap: 10px; padding: 14px 20px; font-size: 15px; color: #333; text-decoration: none; font-weight: 500; border-bottom: 1px solid #f5f5f5; }
+        .mobile-drawer-nav a:hover { background: #f0f4ff; color: #0073e6; }
+        .mobile-drawer-nav .drawer-section { padding: 10px 20px 6px; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+        .mobile-drawer-nav .btn-signup { background: #0073e6; color: #fff !important; margin: 12px 20px; padding: 12px; border-radius: 6px; text-align: center; justify-content: center; }
+        .mobile-drawer-nav .btn-signup:hover { background: #005bb5; }
+
+        /* === CATEGORY NAV === */
+        .cat-nav { background: #fff; border-bottom: 1px solid #e8e8e8; }
+        .cat-nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .cat-nav-inner::-webkit-scrollbar { display: none; }
+        .cat-nav a { display: flex; align-items: center; gap: 4px; padding: 10px 16px; font-size: 13px; font-weight: 500; color: #333; text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .cat-nav a:first-child { background: #0073e6; color: #fff; border-radius: 18px; margin: 6px 4px 6px 0; padding: 6px 16px; border-bottom: none; }
+        .cat-nav a:hover { color: #0073e6; border-bottom-color: #0073e6; }
+        .cat-nav a:first-child:hover { background: #005bb5; color: #fff; border-bottom-color: transparent; }
+
+        /* === MAIN CONTENT === */
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+        .main-content { padding: 20px 0; }
+
+        /* === HERO BANNER CAROUSEL === */
+        .hero-carousel { position: relative; border-radius: 12px; overflow: hidden; margin-bottom: 30px; background: linear-gradient(135deg, #0073e6 0%, #004a99 100%); }
+        .hero-slides { display: flex; transition: transform 0.5s ease; }
+        .hero-slide { min-width: 100%; padding: 50px 50px; display: flex; align-items: center; justify-content: space-between; color: #fff; min-height: 260px; }
+        .hero-slide .hero-text { max-width: 50%; }
+        .hero-slide .hero-text .label { font-size: 14px; opacity: 0.85; margin-bottom: 6px; }
+        .hero-slide .hero-text h2 { font-size: 38px; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; line-height: 1.1; }
+        .hero-slide .hero-text .offer { font-size: 20px; font-weight: 600; opacity: 0.9; }
+        .hero-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; background: rgba(255,255,255,0.25); border: none; border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer; backdrop-filter: blur(4px); z-index: 2; transition: background 0.2s; }
+        .hero-arrow:hover { background: rgba(255,255,255,0.45); }
+        .hero-arrow.prev { left: 12px; }
+        .hero-arrow.next { right: 12px; }
+        .hero-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+        .hero-dots span { width: 22px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.3s; }
+        .hero-dots span.active { background: #fff; width: 30px; }
+
+        /* === SECTION HEADER === */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin: 32px 0 16px; }
+        .section-title { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+        .section-title em { font-style: normal; color: #0073e6; }
+        .section-title::after { content: ''; display: block; width: 60px; height: 3px; background: #0073e6; margin-top: 6px; border-radius: 2px; }
+        .view-all { font-size: 14px; color: #0073e6; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+        .view-all:hover { text-decoration: underline; }
+
+        /* === PRODUCT SCROLL ROW === */
+        .product-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 8px 0 16px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        .product-scroll::-webkit-scrollbar { height: 4px; }
+        .product-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+        .product-card { background: #fff; border-radius: 10px; min-width: 200px; max-width: 200px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; position: relative; border: 1px solid #eee; }
+        .product-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .product-card .discount-badge { position: absolute; top: 8px; right: 8px; background: #0073e6; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+        .product-card img { width: 100%; height: 180px; object-fit: contain; padding: 12px; background: #fafafa; }
+        .product-card .info { padding: 12px; }
+        .product-card .brand { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-card .name { font-size: 12px; color: #777; margin: 3px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-card .price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+        .product-card .price { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+        .product-card .original-price { text-decoration: line-through; color: #aaa; font-size: 13px; }
+        .product-card .save-text { font-size: 12px; color: #0073e6; font-weight: 600; margin-top: 2px; }
+
+        /* === CATEGORY CIRCLES === */
+        .category-circles { display: flex; gap: 28px; overflow-x: auto; padding: 10px 0 20px; -webkit-overflow-scrolling: touch; }
+        .category-circles::-webkit-scrollbar { display: none; }
+        .cat-circle { text-align: center; text-decoration: none; color: #333; min-width: 90px; }
+        .cat-circle .circle-img { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #e0e8f0; overflow: hidden; margin: 0 auto 8px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, transform 0.2s; }
+        .cat-circle:hover .circle-img { border-color: #0073e6; transform: scale(1.05); }
+        .cat-circle .circle-img img { width: 50px; height: 50px; object-fit: contain; }
+        .cat-circle span { font-size: 12px; font-weight: 500; }
+
+        /* === BRAND CARDS === */
+        .brand-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 8px 0 16px; -webkit-overflow-scrolling: touch; }
+        .brand-scroll::-webkit-scrollbar { display: none; }
+        .brand-card { min-width: 300px; max-width: 300px; border-radius: 12px; overflow: hidden; position: relative; cursor: pointer; transition: transform 0.2s; text-decoration: none; }
+        .brand-card:hover { transform: translateY(-3px); }
+        .brand-card img { width: 100%; height: 180px; object-fit: cover; }
+        .brand-card .brand-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: #fff; }
+        .brand-card .brand-label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .brand-card .brand-offer { font-size: 15px; font-weight: 700; }
+
+        /* === PRODUCT GRID (for listing page) === */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .product-grid .product-card { min-width: unset; max-width: unset; }
+
+        /* === FLASH MESSAGES === */
+        .flash { padding: 12px 20px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+        .flash-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .flash-error { background: #fce4ec; color: #c62828; border: 1px solid #f8bbd0; }
+
+        /* === FOOTER === */
+        .footer { background: #1a1a2e; color: #ccc; padding: 40px 0 0; margin-top: 50px; }
+        .footer-inner { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 40px; }
+        .footer h3 { color: #0073e6; font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+        .footer h4 { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 12px; text-decoration: underline; text-underline-offset: 4px; }
+        .footer p, .footer a { font-size: 13px; color: #aaa; text-decoration: none; line-height: 1.8; }
+        .footer a:hover { color: #0073e6; }
+        .footer ul { list-style: none; }
+        .footer ul li { margin-bottom: 4px; }
+        .footer ul li a { font-size: 13px; }
+        .footer-bottom { text-align: center; padding: 16px; margin-top: 30px; border-top: 1px solid #2a2a4e; font-size: 12px; color: #666; }
+
+        /* === FORMS === */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 14px; }
+        .form-group input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
+        .form-group input:focus { border-color: #0073e6; }
+        .btn-primary { background: #0073e6; color: #fff; border: none; padding: 12px 30px; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-primary:hover { background: #005bb5; }
+
+        /* === CATEGORIES CHIPS (listing page) === */
+        .categories { display: flex; gap: 10px; overflow-x: auto; padding: 15px 0; }
+        .category-chip { background: #e8f0fe; padding: 8px 18px; border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; text-decoration: none; color: #0073e6; font-weight: 500; transition: all 0.2s; border: 1px solid transparent; }
+        .category-chip:hover, .category-chip.active { background: #0073e6; color: #fff; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .header-inner { gap: 16px; padding: 10px 16px; }
+            .hero-slide { padding: 40px 30px; }
+            .hero-slide .hero-text h2 { font-size: 30px; }
+            .brand-card { min-width: 260px; max-width: 260px; }
+            .footer-inner { grid-template-columns: 1fr 1fr; gap: 30px; }
+            .container { padding: 0 16px; }
+        }
+
+        @media (max-width: 768px) {
+            .header-inner { grid-template-columns: 1fr auto auto; gap: 8px 12px; padding: 10px 14px; }
+            .search-bar { grid-column: 1 / -1; order: 4; }
+            .search-bar input { padding: 10px 40px 10px 14px; font-size: 14px; }
+            .header-actions { gap: 12px; }
+            .header-actions .desktop-only { display: none !important; }
+            .mobile-only { display: inline !important; }
+            .mobile-menu-btn { display: block !important; }
+            .header-actions .user-link { display: flex !important; }
+            .header-actions .user-link .user-label { display: none; }
+            .header-actions .user-link .user-icon { font-size: 18px; }
+            .cat-nav-inner { padding: 0 14px; }
+            .cat-nav a { padding: 8px 12px; font-size: 12px; }
+            .hero-carousel { border-radius: 8px; margin-bottom: 20px; }
+            .hero-slide { flex-direction: column; text-align: center; padding: 30px 20px; min-height: 200px; }
+            .hero-slide .hero-text { max-width: 100%; }
+            .hero-slide .hero-text h2 { font-size: 24px; }
+            .hero-slide .hero-text .offer { font-size: 16px; }
+            .hero-arrow { width: 34px; height: 34px; font-size: 16px; }
+            .product-card { min-width: 160px; max-width: 160px; }
+            .product-card img { height: 150px; padding: 8px; }
+            .product-card .info { padding: 10px; }
+            .product-card .brand { font-size: 12px; }
+            .product-card .price { font-size: 14px; }
+            .category-circles { gap: 18px; }
+            .cat-circle .circle-img { width: 65px; height: 65px; }
+            .cat-circle { min-width: 75px; }
+            .cat-circle span { font-size: 11px; }
+            .brand-card { min-width: 220px; max-width: 220px; }
+            .brand-card img { height: 140px; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .product-grid .product-card img { height: 150px; }
+            .section-header { margin: 20px 0 12px; }
+            .section-title { font-size: 17px; }
+            .footer { padding: 30px 0 0; margin-top: 30px; }
+            .footer-inner { grid-template-columns: 1fr; gap: 24px; text-align: center; }
+            .footer ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; }
+            .footer ul li { margin-bottom: 0; }
+            .container { padding: 0 14px; }
+            .main-content { padding: 14px 0; }
+        }
+
+        @media (max-width: 480px) {
+            .logo { font-size: 22px; }
+            .header-inner { padding: 8px 12px; }
+            .search-bar input { font-size: 13px; padding: 9px 38px 9px 12px; }
+            .search-bar button { width: 38px; font-size: 16px; }
+            .hero-slide { padding: 24px 16px; min-height: 170px; }
+            .hero-slide .hero-text .label { font-size: 12px; }
+            .hero-slide .hero-text h2 { font-size: 20px; }
+            .hero-slide .hero-text .offer { font-size: 14px; }
+            .hero-arrow { width: 30px; height: 30px; font-size: 14px; }
+            .hero-arrow.prev { left: 6px; }
+            .hero-arrow.next { right: 6px; }
+            .product-card { min-width: 140px; max-width: 140px; }
+            .product-card img { height: 130px; padding: 6px; }
+            .product-card .info { padding: 8px; }
+            .product-card .brand { font-size: 11px; }
+            .product-card .name { font-size: 11px; }
+            .product-card .price { font-size: 13px; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .brand-card { min-width: 200px; max-width: 200px; }
+            .section-title { font-size: 16px; }
+            .view-all { font-size: 13px; }
+            .category-circles { gap: 14px; }
+            .cat-circle .circle-img { width: 56px; height: 56px; }
+            .cat-circle { min-width: 65px; }
+            .cat-circle span { font-size: 10px; }
+            .container { padding: 0 12px; }
+            .footer-bottom { font-size: 11px; }
+            #toast { left: 12px; right: 12px; transform: none; text-align: center; }
+            .order-dropdown { position: fixed; top: auto; right: 12px; left: 12px; width: auto; max-height: 70vh; border-radius: 10px; }
+            .order-dropdown::before { display: none; }
+            .od-items-table .od-item-img { width: 28px; height: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="logo">Zylker<span>Kart</span></a>
+            <div class="search-bar">
+                <form action="/products" method="GET" id="searchForm">
+                    <input type="text" name="search" id="searchInput" placeholder="Search essentials, products and more..." th:value="${param.search}" autocomplete="off">
+                    <button type="submit">&#128269;</button>
+                </form>
+                <div class="autocomplete-dropdown" id="acDropdown"></div>
+            </div>
+            <div class="header-actions">
+                <!-- Logged-in user -->
+                <th:block th:if="${user != null}">
+                    <div class="user-dropdown-wrap">
+                        <a href="#" class="user-link" id="userDropdownTrigger" onclick="event.preventDefault();toggleOrderDropdown();">
+                            <span class="user-icon">&#128100;</span>
+                            <span class="user-label">Hi, <span th:text="${user['fullName'] ?: user['name'] ?: 'User'}">User</span></span>
+                        </a>
+                        <div class="order-dropdown" id="orderDropdown">
+                            <div class="od-header">
+                                <h3>&#128230; My Orders</h3>
+                                <a href="/orders">View All</a>
+                            </div>
+                            <div class="od-body" id="odBody">
+                                <div class="od-loading" id="odLoading">Loading orders...</div>
+                            </div>
+                            <div class="od-pagination" id="odPagination" style="display:none;">
+                                <button id="odPrev" onclick="loadOrders(currentOrderPage - 1)">&larr; Prev</button>
+                                <span class="od-page-info" id="odPageInfo"></span>
+                                <button id="odNext" onclick="loadOrders(currentOrderPage + 1)">Next &rarr;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/cart" class="cart-icon">&#128722; <span class="desktop-only">Cart</span> <span id="cart-badge"></span></a>
+                    <form id="logoutForm" action="/logout" method="POST" style="display:inline;margin:0;">
+                        <button type="button" class="desktop-only" onclick="showLogoutModal()">Logout</button>
+                    </form>
+                </th:block>
+                <!-- Guest user -->
+                <th:block th:if="${user == null}">
+                    <a href="/login" class="user-link"><span class="user-icon">&#128100;</span> <span class="user-label">Sign In</span></a>
+                    <a href="/register" class="btn-signup desktop-only">Sign Up</a>
+                    <a href="/cart" class="cart-icon">&#128722; <span class="desktop-only">Cart</span> <span id="cart-badge"></span></a>
+                </th:block>
+                <button class="mobile-menu-btn" onclick="openMobileMenu()" aria-label="Menu">&#9776;</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Drawer -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
+    <div class="mobile-drawer" id="mobileDrawer">
+        <div class="mobile-drawer-header">
+            <a href="/" class="logo">Zylker<span>Kart</span></a>
+            <button class="mobile-drawer-close" onclick="closeMobileMenu()" aria-label="Close">&#10005;</button>
+        </div>
+        <nav class="mobile-drawer-nav">
+            <th:block th:if="${user != null}">
+                <a href="#">&#128100; Hi, <span th:text="${user['fullName'] ?: user['name'] ?: 'User'}">User</span></a>
+                <a href="/orders">&#128230; My Orders</a>
+                <a href="/cart">&#128722; My Cart</a>
+                <a href="/products">&#128717;&#65039; All Products</a>
+                <div class="drawer-section">Categories</div>
+                <th:block th:if="${categories != null}" th:each="cat : ${categories}" th:with="catName=${cat['name']}">
+                    <a th:href="'/products?category=' + ${catName}" th:text="${catName}">Category</a>
+                </th:block>
+                <div class="drawer-section">Account</div>
+                <a href="#" onclick="event.preventDefault();closeMobileMenu();showLogoutModal();">&#128682; Logout</a>
+            </th:block>
+            <th:block th:if="${user == null}">
+                <a href="/login">&#128100; Sign In</a>
+                <a href="/register" class="btn-signup">Sign Up — Free</a>
+                <a href="/cart">&#128722; My Cart</a>
+                <a href="/products">&#128717;&#65039; All Products</a>
+                <div class="drawer-section">Categories</div>
+                <th:block th:if="${categories != null}" th:each="cat : ${categories}" th:with="catName=${cat['name']}">
+                    <a th:href="'/products?category=' + ${catName}" th:text="${catName}">Category</a>
+                </th:block>
+            </th:block>
+        </nav>
+    </div>
+
+    <!-- Category Navigation Bar -->
+    <nav class="cat-nav" th:if="${categories != null and !categories.isEmpty()}">
+        <div class="cat-nav-inner">
+            <a href="/products">All</a>
+            <a th:each="cat : ${categories}" th:href="'/products?category=' + ${cat['name']}" th:text="${cat['name']} + ' ▾'">Category ▾</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container main-content">
+        <div layout:fragment="content"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div>
+                <h3>Zylker<span style="color: #ff9800;">Kart</span></h3>
+                <h4>Contact Us</h4>
+                <p>&#128231; support@zylkerkart.com</p>
+                <p>&#128222; +1 202-918-2132</p>
+                <p style="margin-top:12px; font-size:11px; opacity:0.5;">Microservices Demo Platform<br/>for Site24x7</p>
+            </div>
+            <div>
+                <h4>Popular Categories</h4>
+                <ul>
+                    <li><a href="/products?category=Electronics">Electronics</a></li>
+                    <li><a href="/products?category=WomensClothing">Women's Clothing</a></li>
+                    <li><a href="/products?category=MensClothing">Men's Clothing</a></li>
+                    <li><a href="/products?category=BeautyAndPersonalCare">Beauty &amp; Personal Care</a></li>
+                    <li><a href="/products?category=HomeAndLiving">Home &amp; Living</a></li>
+                    <li><a href="/products?category=Footwear">Footwear</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Customer Services</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Terms &amp; Conditions</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Cancellation &amp; Return Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span> ZylkerKart. All rights reserved. | Java/Spring Boot &middot; Node.js &middot; Go &middot; Python &middot; C#/.NET
+        </div>
+    </footer>
+
+<!-- Toast Notification -->
+<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:opacity 0.3s;"></div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:32px;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+        <h3 style="margin:0 0 8px;font-size:18px;color:#222;">Logout Confirmation</h3>
+        <p style="color:#666;font-size:14px;margin:0 0 24px;">Are you sure you want to log out of your account?</p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+            <button onclick="hideLogoutModal()" style="flex:1;padding:10px 20px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#333;font-size:14px;font-weight:500;cursor:pointer;">Cancel</button>
+            <button onclick="document.getElementById('logoutForm').submit()" style="flex:1;padding:10px 20px;border:none;border-radius:6px;background:#e53935;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Logout</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mobile menu
+function openMobileMenu() {
+    document.getElementById('mobileOverlay').classList.add('open');
+    document.getElementById('mobileDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+    document.getElementById('mobileOverlay').classList.remove('open');
+    document.getElementById('mobileDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function showLogoutModal() {
+    var m = document.getElementById('logoutModal');
+    m.style.display = 'flex';
+}
+function hideLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'none';
+}
+document.getElementById('logoutModal')?.addEventListener('click', function(e) {
+    if (e.target === this) hideLogoutModal();
+});
+
+function showToast(msg, duration) {
+    duration = duration || 2000;
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    t.style.opacity = '1';
+    setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.style.display = 'none'; }, 300); }, duration);
+}
+
+function updateCartBadge(count) {
+    var badge = document.getElementById('cart-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Load cart count on page load
+(function() {
+    var sid = document.querySelector('meta[name="cart-session"]');
+    if (!sid) return;
+    fetch('/api/cart/count?sessionId=' + sid.content)
+        .then(function(r) { return r.json(); })
+        .then(function(d) { updateCartBadge(d.itemCount || 0); })
+        .catch(function() {});
+})();
+
+// ─── Search Autocomplete ────────────────────────────────────────────────
+(function() {
+    var input = document.getElementById('searchInput');
+    var dropdown = document.getElementById('acDropdown');
+    var form = document.getElementById('searchForm');
+    if (!input || !dropdown) return;
+
+    var debounceTimer = null;
+    var activeIdx = -1;
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function highlightMatch(text, query) {
+        var idx = text.toLowerCase().indexOf(query.toLowerCase());
+        if (idx === -1) return escapeHtml(text);
+        return escapeHtml(text.substring(0, idx)) + '<mark>' + escapeHtml(text.substring(idx, idx + query.length)) + '</mark>' + escapeHtml(text.substring(idx + query.length));
+    }
+
+    function renderDropdown(suggestions, trending, query) {
+        var html = '';
+        if (suggestions && suggestions.length > 0) {
+            html += '<div class="ac-section-label">Suggestions</div>';
+            suggestions.forEach(function(s, i) {
+                html += '<div class="ac-item" data-idx="' + i + '" data-value="' + escapeHtml(s.text) + '">' +
+                    '<span class="ac-icon">&#128269;</span>' +
+                    '<span class="ac-text">' + highlightMatch(s.text, query) + '</span>' +
+                    (s.category ? '<span class="ac-category">' + escapeHtml(s.category) + '</span>' : '') +
+                    '</div>';
+            });
+        }
+        if (trending && trending.length > 0) {
+            html += '<div class="ac-section-label">Trending</div>';
+            trending.forEach(function(t, i) {
+                html += '<div class="ac-item" data-idx="' + ((suggestions ? suggestions.length : 0) + i) + '" data-value="' + escapeHtml(t.query) + '">' +
+                    '<span class="ac-icon">&#128293;</span>' +
+                    '<span class="ac-text">' + escapeHtml(t.query) + '</span>' +
+                    '</div>';
+            });
+        }
+        if (!html) {
+            dropdown.classList.remove('show');
+            return;
+        }
+        dropdown.innerHTML = html;
+        dropdown.classList.add('show');
+        activeIdx = -1;
+
+        dropdown.querySelectorAll('.ac-item').forEach(function(item) {
+            item.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                input.value = item.dataset.value;
+                dropdown.classList.remove('show');
+                form.submit();
+            });
+        });
+    }
+
+    input.addEventListener('input', function() {
+        var q = this.value.trim();
+        clearTimeout(debounceTimer);
+        if (q.length < 2) {
+            dropdown.classList.remove('show');
+            return;
+        }
+        debounceTimer = setTimeout(function() {
+            Promise.all([
+                fetch('/api/search/suggestions?q=' + encodeURIComponent(q) + '&limit=6').then(function(r) { return r.json(); }),
+                fetch('/api/search/trending?limit=4').then(function(r) { return r.json(); })
+            ]).then(function(results) {
+                renderDropdown(results[0].suggestions || [], results[1].trending || [], q);
+            }).catch(function() {
+                dropdown.classList.remove('show');
+            });
+        }, 250);
+    });
+
+    input.addEventListener('focus', function() {
+        if (this.value.trim().length >= 2) {
+            this.dispatchEvent(new Event('input'));
+        }
+    });
+
+    input.addEventListener('blur', function() {
+        setTimeout(function() { dropdown.classList.remove('show'); }, 200);
+    });
+
+    input.addEventListener('keydown', function(e) {
+        var items = dropdown.querySelectorAll('.ac-item');
+        if (!items.length || !dropdown.classList.contains('show')) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIdx = Math.min(activeIdx + 1, items.length - 1);
+            items.forEach(function(it, i) { it.classList.toggle('ac-active', i === activeIdx); });
+            if (items[activeIdx]) input.value = items[activeIdx].dataset.value;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIdx = Math.max(activeIdx - 1, 0);
+            items.forEach(function(it, i) { it.classList.toggle('ac-active', i === activeIdx); });
+            if (items[activeIdx]) input.value = items[activeIdx].dataset.value;
+        } else if (e.key === 'Enter' && activeIdx >= 0) {
+            dropdown.classList.remove('show');
+        } else if (e.key === 'Escape') {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    // Log search on form submit
+    form.addEventListener('submit', function() {
+        var q = input.value.trim();
+        if (q.length >= 2) {
+            navigator.sendBeacon('/api/search/log', new Blob([JSON.stringify({ query: q })], { type: 'application/json' }));
+        }
+    });
+})();
+
+// ─── Order History Dropdown ─────────────────────────────────────────────
+var currentOrderPage = 1;
+var orderDropdownOpen = false;
+var ordersLoaded = false;
+
+function toggleOrderDropdown() {
+    var dd = document.getElementById('orderDropdown');
+    if (!dd) return;
+    orderDropdownOpen = !orderDropdownOpen;
+    dd.classList.toggle('show', orderDropdownOpen);
+    if (orderDropdownOpen && !ordersLoaded) {
+        loadOrders(1);
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    var wrap = document.querySelector('.user-dropdown-wrap');
+    var dd = document.getElementById('orderDropdown');
+    if (wrap && dd && orderDropdownOpen && !wrap.contains(e.target)) {
+        orderDropdownOpen = false;
+        dd.classList.remove('show');
+    }
+});
+
+function loadOrders(page) {
+    var body = document.getElementById('odBody');
+    var pagination = document.getElementById('odPagination');
+    if (!body) return;
+
+    currentOrderPage = page;
+    body.innerHTML = '<div class="od-loading">Loading orders...</div>';
+
+    fetch('/api/orders?page=' + page + '&perPage=5')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            ordersLoaded = true;
+            if (!data.orders || data.orders.length === 0) {
+                body.innerHTML = '<div class="od-empty"><div class="od-empty-icon">&#128237;</div><p>No orders yet</p></div>';
+                if (pagination) pagination.style.display = 'none';
+                return;
+            }
+            renderOrders(data.orders);
+            if (data.totalPages > 1 && pagination) {
+                pagination.style.display = 'flex';
+                document.getElementById('odPrev').disabled = (page <= 1);
+                document.getElementById('odNext').disabled = (page >= data.totalPages);
+                document.getElementById('odPageInfo').textContent = 'Page ' + page + ' of ' + data.totalPages + ' (' + data.totalOrders + ' orders)';
+            } else if (pagination) {
+                pagination.style.display = 'none';
+            }
+        })
+        .catch(function() {
+            body.innerHTML = '<div class="od-empty"><div class="od-empty-icon">&#9888;&#65039;</div><p>Failed to load orders</p></div>';
+        });
+}
+
+function renderOrders(orders) {
+    var body = document.getElementById('odBody');
+    var html = '';
+    orders.forEach(function(order) {
+        var orderId = order.orderId || '—';
+        var status = (order.status || 'pending').toLowerCase();
+        var total = parseFloat(order.totalAmount || 0).toFixed(2);
+        var createdAt = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+        var items = order.items || [];
+        var txnId = order.transactionId || '';
+        var payMethod = order.paymentMethod || '';
+        var payStatus = order.paymentStatus || '';
+        var address = order.shippingAddress || '';
+
+        html += '<div class="od-order" id="od-order-' + orderId + '">';
+        html += '<div class="od-order-header" onclick="toggleOrderAccordion(\'' + orderId + '\')">';
+        html += '<div class="od-order-left">';
+        html += '<div class="od-order-id">Order #' + orderId + '</div>';
+        html += '<div class="od-order-date">' + createdAt + '</div>';
+        html += '</div>';
+        html += '<div class="od-order-right">';
+        html += '<span class="od-status ' + status + '">' + status + '</span>';
+        html += '<span class="od-order-amount">$' + total + '</span>';
+        html += '<span class="od-chevron">&#9660;</span>';
+        html += '</div></div>';
+
+        html += '<div class="od-order-details">';
+        if (items.length > 0) {
+            html += '<table class="od-items-table"><thead><tr><th></th><th>Product</th><th>Qty</th><th>Price</th></tr></thead><tbody>';
+            items.forEach(function(item) {
+                var imgSrc = item.image || 'https://via.placeholder.com/36';
+                html += '<tr>';
+                html += '<td><img class="od-item-img" src="' + imgSrc + '" alt=""></td>';
+                html += '<td><span class="od-item-title" title="' + (item.title || '') + '">' + (item.title || 'Product') + '</span>';
+                if (item.size) html += '<br><small style="color:#999;">Size: ' + item.size + '</small>';
+                html += '</td>';
+                html += '<td>' + (item.quantity || 1) + '</td>';
+                html += '<td>$' + parseFloat(item.price || 0).toFixed(2) + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+        }
+
+        /* Transaction / Payment info */
+        html += '<div class="od-txn">';
+        if (txnId) {
+            html += '<div class="od-txn-row"><span class="od-txn-label">Transaction ID</span><span class="od-txn-value">' + txnId + '</span></div>';
+        }
+        if (payMethod) {
+            html += '<div class="od-txn-row"><span class="od-txn-label">Method</span><span class="od-txn-value">' + payMethod.replace('_', ' ') + '</span></div>';
+        }
+        if (payStatus) {
+            html += '<div class="od-txn-row"><span class="od-txn-label">Payment Status</span><span class="od-txn-value"><span class="od-status ' + payStatus + '">' + payStatus + '</span></span></div>';
+        }
+        if (!txnId && !payMethod && !payStatus) {
+            html += '<div class="od-txn-row"><span class="od-txn-label">Payment</span><span class="od-txn-value" style="color:#999;">No transaction recorded</span></div>';
+        }
+        html += '</div>';
+
+        if (address) {
+            html += '<div class="od-txn" style="margin-top:8px;"><div class="od-txn-row"><span class="od-txn-label">Shipping</span><span class="od-txn-value" style="font-family:inherit;font-size:12px;max-width:220px;text-align:right;">' + address + '</span></div></div>';
+        }
+
+        html += '</div></div>';
+    });
+    body.innerHTML = html;
+}
+
+function toggleOrderAccordion(orderId) {
+    var el = document.getElementById('od-order-' + orderId);
+    if (!el) return;
+    var details = el.querySelector('.od-order-details');
+    if (!details) return;
+
+    /* Close any other expanded orders in the dropdown */
+    document.querySelectorAll('.od-order.expanded').forEach(function(other) {
+        if (other !== el) {
+            var otherDetails = other.querySelector('.od-order-details');
+            if (otherDetails) {
+                otherDetails.style.maxHeight = otherDetails.scrollHeight + 'px';
+                requestAnimationFrame(function() { otherDetails.style.maxHeight = '0'; });
+            }
+            other.classList.remove('expanded');
+        }
+    });
+
+    if (el.classList.contains('expanded')) {
+        details.style.maxHeight = details.scrollHeight + 'px';
+        requestAnimationFrame(function() { details.style.maxHeight = '0'; });
+        el.classList.remove('expanded');
+    } else {
+        el.classList.add('expanded');
+        details.style.maxHeight = details.scrollHeight + 'px';
+        details.addEventListener('transitionend', function handler() {
+            if (el.classList.contains('expanded')) details.style.maxHeight = 'none';
+            details.removeEventListener('transitionend', handler);
+        });
+    }
+}
+</script>
+</body>
+</html>
