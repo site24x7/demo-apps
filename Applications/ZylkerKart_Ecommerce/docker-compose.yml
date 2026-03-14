@@ -1,0 +1,444 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ZylkerKart — Polyglot Microservices E-Commerce Platform
+# ─────────────────────────────────────────────────────────────────────────────
+# Services:
+#   8080  Storefront    (Java 17 / Spring Boot 3.2)
+#   8081  Product       (Java 17 / Spring Boot)
+#   8082  Order         (Node.js 18 / Express)
+#   8083  Search        (Go 1.21 / Gin)
+#   8084  Payment       (Python 3.11 / FastAPI)
+#   8085  Auth          (C# / .NET 8)
+#   3306  MySQL 8.0
+#   6379  Redis 7.0
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Site24x7 APM Insight Integration
+# ────────────────────────────────
+# Enable APM monitoring for all services via environment variables:
+#
+#   S247_APM_ENABLED=true S247_LICENSE_KEY=<your_key> docker compose up
+#
+# Or add to .env file:
+#   S247_APM_ENABLED=true
+#   S247_LICENSE_KEY=your_license_key_here
+#
+# When S247_APM_ENABLED=false (default), services run without any APM overhead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Data Stores ──────────────────────────────────────────────────────────
+  mysql:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: zylkerkart-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: zylkerkart-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Microservices ────────────────────────────────────────────────────────
+
+  # 1. Product Service — Java 17 / Spring Boot (port 8081)
+  #    APM: Site24x7 Java Agent (javaagent JAR)
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    container_name: zylkerkart-product
+    user: "0:0"
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_product?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+    entrypoint: ["/bin/sh", "-c", "
+      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+        echo '[Site24x7] APM enabled for Product Service (Java)';
+        if [ ! -f /opt/s247-agent/apminsight-javaagent.jar ]; then
+          echo '[Site24x7] Downloading Java agent...';
+          apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null 2>&1;
+          mkdir -p /opt/s247-agent;
+          wget -q -O /opt/s247-agent/apminsight-javaagent.zip https://staticdownloads.site24x7.in/apminsight/agents/apminsight-javaagent.zip;
+          unzip -o -q /opt/s247-agent/apminsight-javaagent.zip -d /opt/s247-agent/;
+          rm -f /opt/s247-agent/apminsight-javaagent.zip;
+          echo '[Site24x7] Java agent installed.';
+        else
+          echo '[Site24x7] Java agent already cached.';
+        fi;
+        exec java -Xms256m -Xmx512m
+          -javaagent:/opt/s247-agent/apminsight-javaagent.jar
+          -Dapminsight.license.key=$$S247_LICENSE_KEY
+          -Dapminsight.application.name=ZylkerKart-Product
+          -jar app.jar;
+      else
+        exec java -Xms256m -Xmx512m -jar app.jar;
+      fi
+    "]
+    volumes:
+      - s247_java_agent:/opt/s247-agent
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  # 2. Order Service — Node.js 18 / Express (port 8082)
+  #    APM: Site24x7 Node.js Agent (apminsight npm package)
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: zylkerkart-order
+    user: "0:0"
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+      DB_NAME: db_order
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      AUTH_SERVICE_URL: http://auth-service:8085
+      S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      APMINSIGHT_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      APMINSIGHT_APP_NAME: ZylkerKart-Order
+      APMINSIGHT_APP_PORT: 8082
+    command: ["/bin/sh", "-c", "
+      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+        echo '[Site24x7] APM enabled for Order Service (Node.js)';
+        npm install apminsight --silent 2>/dev/null;
+        echo '[Site24x7] Node.js agent installed.';
+        exec node -r apminsight src/app.js;
+      else
+        exec node src/app.js;
+      fi
+    "]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # 3. Search Service — Go 1.21 / Gin (port 8083)
+  #    APM: Site24x7 Go Agent (eBPF sidecar — see s247-go-apm-agent service below)
+  search-service:
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
+    container_name: zylkerkart-search
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: 8083
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+      DB_NAME: db_search
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # 4. Payment Service — Python 3.11 / FastAPI (port 8084)
+  #    APM: Site24x7 Python Agent (apminsight + S247DataExporter)
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    container_name: zylkerkart-payment
+    user: "0:0"
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+      DB_NAME: db_payment
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      APM_APP_NAME: ZylkerKart-Payment
+    command: ["/bin/sh", "-c", "
+      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+        echo '[Site24x7] APM enabled for Payment Service (Python)';
+        if [ ! -f /opt/S247DataExporter/bin/service.sh ]; then
+          echo '[Site24x7] Installing S247DataExporter...';
+          apt-get update -qq && apt-get install -y -qq wget procps unzip curl > /dev/null 2>&1;
+          wget -q -O /tmp/InstallDataExporter.sh https://staticdownloads.site24x7.com/apminsight/S247DataExporter/linux/InstallDataExporter.sh;
+          sh /tmp/InstallDataExporter.sh -root -nsvc;
+          rm -f /tmp/InstallDataExporter.sh;
+          echo '[Site24x7] S247DataExporter installed.';
+        else
+          echo '[Site24x7] S247DataExporter already cached.';
+        fi;
+        pip install -q apminsight 2>/dev/null;
+        echo '[Site24x7] Python agent installed.';
+        /opt/S247DataExporter/bin/service.sh start;
+        exec apminsight-run uvicorn app.main:app --host 0.0.0.0 --port 8084;
+      else
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8084;
+      fi
+    "]
+    volumes:
+      - s247_python_payment:/opt/S247DataExporter
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # 5. Auth Service — C# / .NET 8 (port 8085)
+  #    APM: Site24x7 .NET Core Agent (CLR Profiler)
+  auth-service:
+    platform: linux/amd64
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: zylkerkart-auth
+    user: "0:0"
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: 8085
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ZylkerKart@2024}
+      DB_NAME: db_auth
+      JWT_SECRET: ${JWT_SECRET:-ZylkerKart-Super-Secret-JWT-Key-2024-Must-Be-At-Least-32-Chars}
+      JWT_EXPIRY_MINUTES: 15
+      JWT_REFRESH_EXPIRY_DAYS: 7
+      S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      SITE24X7_APP_NAME: ZylkerKart-Auth
+    entrypoint: ["/bin/sh", "-c", "
+      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+        echo '[Site24x7] APM enabled for Auth Service (.NET)';
+        if [ ! -f /opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/DotNetCoreAgent/apminsight.conf ]; then
+          echo '[Site24x7] Downloading .NET agent...';
+          apt-get update -qq && apt-get install -y -qq wget ca-certificates unzip xxd sed > /dev/null 2>&1;
+          wget -q -O /tmp/apminsight-dotnetcoreagent-linux.sh https://staticdownloads.site24x7.com/apminsight/agents/dotnet/apminsight-dotnetcoreagent-linux.sh;
+          chmod +x /tmp/apminsight-dotnetcoreagent-linux.sh;
+          /tmp/apminsight-dotnetcoreagent-linux.sh -Destination /opt/apminsight/dotnet -LicenseKey $$S247_LICENSE_KEY;
+          rm -f /tmp/apminsight-dotnetcoreagent-linux.sh;
+          echo '[Site24x7] .NET agent installed.';
+        else
+          echo '[Site24x7] .NET agent already cached.';
+        fi;
+        CONF=/opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/DotNetCoreAgent/apminsight.conf;
+        sed -i 's/^application.name=.*/application.name=ZylkerKart-Auth/' $$CONF;
+        echo '[Site24x7] Config updated: application.name=ZylkerKart-Auth';
+        export CORECLR_ENABLE_PROFILING=1;
+        export CORECLR_PROFILER='{9D363A5F-ED5F-4AAC-B456-75AFFA6AA0C8}';
+        export CORECLR_SITE24X7_HOME=/opt/apminsight/dotnet/ApmInsightDotNetCoreAgent;
+        export CORECLR_PROFILER_PATH_64=/opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/x64/libClrProfilerAgent.so;
+        export CORECLR_PROFILER_PATH_32=/opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/x86/libClrProfilerAgent.so;
+        export DOTNET_STARTUP_HOOKS=/opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/netstandard2.0/DotNetAgent.Loader.dll;
+        export MANAGEENGINE_COMMUNICATION_MODE=direct;
+        exec dotnet AuthService.dll;
+      else
+        exec dotnet AuthService.dll;
+      fi
+    "]
+    volumes:
+      - s247_dotnet_agent:/opt/apminsight
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # 6. Storefront BFF — Java 17 / Spring Boot 3.2 (port 8080)
+  #    APM: Site24x7 Java Agent (-javaagent)
+  storefront:
+    build:
+      context: ./services/storefront
+      dockerfile: Dockerfile
+    container_name: zylkerkart-storefront
+    user: "0:0"
+    ports:
+      - "8080:80"
+    environment:
+      PRODUCT_SERVICE_URL: http://product-service:8081
+      ORDER_SERVICE_URL: http://order-service:8082
+      SEARCH_SERVICE_URL: http://search-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      AUTH_SERVICE_URL: http://auth-service:8085
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+    entrypoint: ["/bin/sh", "-c", "
+      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+        echo '[Site24x7] APM enabled for Storefront (Java)';
+        if [ ! -f /opt/s247-agent/apminsight-javaagent.jar ]; then
+          echo '[Site24x7] Downloading Java agent...';
+          apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null 2>&1;
+          mkdir -p /opt/s247-agent;
+          wget -q -O /opt/s247-agent/apminsight-javaagent.zip https://staticdownloads.site24x7.in/apminsight/agents/apminsight-javaagent.zip;
+          unzip -o -q /opt/s247-agent/apminsight-javaagent.zip -d /opt/s247-agent/;
+          rm -f /opt/s247-agent/apminsight-javaagent.zip;
+          echo '[Site24x7] Java agent installed.';
+        else
+          echo '[Site24x7] Java agent already cached.';
+        fi;
+        exec java -Xms256m -Xmx512m
+          -javaagent:/opt/s247-agent/apminsight-javaagent.jar
+          -Dapminsight.license.key=$$S247_LICENSE_KEY
+          -Dapminsight.application.name=ZylkerKart-Storefront
+          -jar app.jar;
+      else
+        exec java -Xms256m -Xmx512m -jar app.jar;
+      fi
+    "]
+    volumes:
+      - s247_java_storefront:/opt/s247-agent
+    depends_on:
+      - product-service
+      - order-service
+      - search-service
+      - payment-service
+      - auth-service
+      - redis
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+
+  # ── Site24x7 APM Sidecar ─────────────────────────────────────────────────
+
+  # Go APM Agent — eBPF-based sidecar (monitors search-service)
+  # Only starts when S247_APM_ENABLED=true; exits immediately otherwise.
+  s247-go-apm-agent:
+    image: site24x7/apminsight-go-agent:latest
+    container_name: zylkerkart-s247-go-apm
+    privileged: true
+    pid: host
+    network_mode: "service:search-service"
+    environment:
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      GO_APPS: "ZylkerKart-Search=search-service:8083"
+    profiles:
+      - apm
+    depends_on:
+      search-service:
+        condition: service_started
+    restart: unless-stopped
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  # Site24x7 APM agent cache volumes (persist across restarts)
+  s247_java_agent:
+    driver: local
+  s247_python_payment:
+    driver: local
+  s247_dotnet_agent:
+    driver: local
+  s247_java_storefront:
+    driver: local
+
+# ── Networks ───────────────────────────────────────────────────────────────
+networks:
+  zylkerkart-network:
+    driver: bridge
+    name: zylkerkart-network

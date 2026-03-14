@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title th:text="${title}">Products - ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+    <h2 class="section-title">
+        <span th:if="${filters['search'] != null and !filters['search'].isEmpty()}" th:text="'Search results for &quot;' + ${filters['search']} + '&quot;'">Search results</span>
+        <span th:if="${(filters['search'] == null or filters['search'].isEmpty()) and (filters['category'] != null and !filters['category'].isEmpty())}" th:text="${filters['category']}">Category</span>
+        <span th:if="${(filters['search'] == null or filters['search'].isEmpty()) and (filters['category'] == null or filters['category'].isEmpty())}">All Products</span>
+    </h2>
+
+    <div class="product-grid">
+        <th:block th:with="items=${products['products'] != null ? products['products'] : {}}">
+            <a th:each="product : ${items}" th:href="'/products/' + ${product['productId']}" class="product-card" style="text-decoration: none; color: inherit;">
+                <img th:if="${product['images'] != null and !product['images'].isEmpty()}"
+                     th:src="${product['images'][0]}" th:alt="${product['productDescription']}" loading="lazy">
+                <img th:unless="${product['images'] != null and !product['images'].isEmpty()}"
+                     src="https://via.placeholder.com/300x250?text=No+Image" alt="No image">
+                <div class="info">
+                    <div class="brand" th:text="${product['title']}">Brand</div>
+                    <div class="name" th:text="${#strings.abbreviate(product['productDescription'] ?: '', 50)}">Description</div>
+                    <div>
+                        <span class="price" th:text="${product['finalPrice'] ?: '$0'}">$0</span>
+                        <span class="original-price"
+                              th:if="${product['initialPrice'] != null and product['initialPrice'] != (product['finalPrice'] ?: '')}"
+                              th:text="'$' + ${product['initialPrice']}">$100</span>
+                    </div>
+                </div>
+            </a>
+            <p th:if="${items == null or items.isEmpty()}">No products found.</p>
+        </th:block>
+    </div>
+
+    <!-- Pagination -->
+    <th:block th:if="${totalPages > 1}">
+        <style>
+            .pagination-wrap { text-align: center; margin: 30px 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; }
+            .pagination-link { display: inline-block; padding: 8px 14px; border-radius: 4px; text-decoration: none; min-width: 40px; text-align: center; }
+            .pagination-link--active { background: #1565c0; color: #fff; }
+            .pagination-link--inactive { background: #e3f2fd; color: #1565c0; }
+            @media (max-width: 480px) {
+                .pagination-link { padding: 6px 10px; min-width: 34px; font-size: 13px; }
+            }
+        </style>
+        <div class="pagination-wrap">
+            <th:block th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+                <a th:href="'/products?page=' + ${i} + '&amp;category=' + ${filters['category'] ?: ''} + '&amp;search=' + ${filters['search'] ?: ''}"
+                   class="pagination-link"
+                   th:classappend="${i == currentPage ? 'pagination-link--active' : 'pagination-link--inactive'}"
+                   th:text="${i + 1}">1</a>
+            </th:block>
+        </div>
+    </th:block>
+</div>
+</body>
+</html>

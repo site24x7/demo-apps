@@ -1,0 +1,28 @@
+# Build output
+bin/
+obj/
+chaos-sdk/bin/
+chaos-sdk/obj/
+
+# IDE
+.vscode/
+.idea/
+.vs/
+*.user
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.md
+*.log

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title>My Orders - ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+<style>
+    .orders-title { font-size: 22px; margin-bottom: 20px; }
+    .orders-loading { text-align: center; padding: 60px 20px; color: #888; }
+    .orders-empty { text-align: center; padding: 60px 20px; display: none; }
+    .orders-empty h2 { margin-bottom: 10px; }
+    .orders-empty p { color: #888; margin-bottom: 20px; }
+    .orders-list { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Accordion card */
+    .orders-card { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    .orders-card:hover { border-color: #0073e6; box-shadow: 0 2px 12px rgba(0,115,230,0.08); }
+
+    /* Card header — always visible */
+    .orders-card-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; cursor: pointer; user-select: none; gap: 12px; transition: background 0.15s; }
+    .orders-card-header:hover { background: #f8fbff; }
+    .orders-card-left { flex: 1; min-width: 0; }
+    .orders-card-row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+    .orders-card-id { font-weight: 700; font-size: 15px; color: #1a1a2e; }
+    .orders-card-txn { font-size: 12px; color: #999; font-family: 'Courier New', monospace; }
+    .orders-card-row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13px; color: #666; }
+    .orders-card-row2 span { display: flex; align-items: center; gap: 4px; }
+    .orders-card-date { color: #888; }
+    .orders-card-payment-method { font-weight: 500; text-transform: capitalize; }
+    .orders-card-address { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .orders-card-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .orders-card-total { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+    .orders-card-status { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 12px; text-transform: capitalize; white-space: nowrap; }
+    .orders-card-status--confirmed, .orders-card-status--success { background: #e8f5e9; color: #2e7d32; }
+    .orders-card-status--pending, .orders-card-status--processing { background: #fff3e0; color: #e65100; }
+    .orders-card-status--delivered, .orders-card-status--shipped { background: #e3f2fd; color: #1565c0; }
+    .orders-card-status--cancelled, .orders-card-status--failed { background: #fce4ec; color: #c62828; }
+    .orders-card-chevron { font-size: 12px; color: #bbb; transition: transform 0.3s ease; }
+    .orders-card.open .orders-card-chevron { transform: rotate(180deg); }
+
+    /* Accordion body — smooth expand/collapse */
+    .orders-card-body { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.3s ease; padding: 0 20px; border-top: 1px solid transparent; }
+    .orders-card.open .orders-card-body { opacity: 1; border-top-color: #f0f0f0; }
+
+    /* Items inside accordion */
+    .orders-card-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+    .orders-card-item:last-child { border-bottom: none; }
+    .orders-card-item-img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; background: #fafafa; }
+    .orders-card-item-info { flex: 1; min-width: 0; }
+    .orders-card-item-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .orders-card-item-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .orders-card-item-price { font-weight: 600; font-size: 14px; white-space: nowrap; }
+
+    /* Footer inside accordion */
+    .orders-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 4px; border-top: 1px solid #f0f0f0; flex-wrap: wrap; gap: 8px; padding-bottom: 16px; }
+    .orders-card-footer-total { font-weight: 700; font-size: 16px; }
+    .orders-card-footer-payment { font-size: 13px; color: #888; }
+
+    /* Pagination */
+    .orders-pagination { text-align: center; margin-top: 24px; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+    .orders-pagination a { padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+    .orders-pagination a.active { background: #0073e6; color: #fff; }
+    .orders-pagination a.inactive { background: #e3f2fd; color: #1565c0; }
+    .orders-pagination a.inactive:hover { background: #0073e6; color: #fff; }
+
+    @media (max-width: 768px) {
+        .orders-card-header { padding: 14px 16px; flex-direction: column; align-items: flex-start; }
+        .orders-card-right { margin-top: 8px; }
+        .orders-card-body { padding: 0 16px; }
+        .orders-card.open .orders-card-body { padding: 0 16px; }
+        .orders-card-item-img { width: 48px; height: 48px; }
+        .orders-card-address { max-width: 180px; }
+    }
+    @media (max-width: 480px) {
+        .orders-title { font-size: 18px; }
+        .orders-card-row2 { flex-direction: column; gap: 4px; align-items: flex-start; }
+        .orders-card-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+        .orders-card-item-img { width: 100%; height: 120px; object-fit: contain; background: #fafafa; border-radius: 6px; }
+        .orders-card-footer { flex-direction: column; align-items: flex-start; }
+        .orders-card-address { max-width: 100%; }
+    }
+</style>
+
+<h1 class="orders-title">My Orders</h1>
+<div class="orders-loading" id="ordersLoading">Loading your orders...</div>
+<div class="orders-empty" id="ordersEmpty">
+    <h2>No orders yet</h2>
+    <p>Start shopping and your orders will appear here.</p>
+    <a href="/products" class="btn-primary" style="display: inline-block;">Start Shopping</a>
+</div>
+<div class="orders-list" id="ordersList"></div>
+<div class="orders-pagination" id="ordersPagination"></div>
+
+<script>
+var currentOrdersPage = 1;
+
+function loadPageOrders(page) {
+    currentOrdersPage = page || 1;
+    document.getElementById('ordersLoading').style.display = 'block';
+    document.getElementById('ordersList').innerHTML = '';
+    document.getElementById('ordersPagination').innerHTML = '';
+    document.getElementById('ordersEmpty').style.display = 'none';
+
+    fetch('/api/orders?page=' + currentOrdersPage + '&perPage=10')
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            document.getElementById('ordersLoading').style.display = 'none';
+            var orders = data.orders || [];
+            var totalPages = data.totalPages || 1;
+
+            if (!orders.length) {
+                document.getElementById('ordersEmpty').style.display = 'block';
+                return;
+            }
+
+            var html = '';
+            orders.forEach(function(order, idx) {
+                var status = (order.status || 'pending').toLowerCase();
+                var statusClass = 'orders-card-status--' + status;
+                var items = order.items || [];
+                var totalAmount = parseFloat(order.totalAmount || 0).toFixed(2);
+                var date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+                var txnId = order.transactionId || '';
+                var address = order.shippingAddress || '';
+                var payMethod = order.paymentMethod || '';
+                var payStatus = order.paymentStatus || '';
+                var cardId = 'orders-card-' + idx;
+
+                html += '<div class="orders-card" id="' + cardId + '">';
+
+                /* ── Header ── */
+                html += '<div class="orders-card-header" onclick="togglePageAccordion(\'' + cardId + '\')">';
+                html += '<div class="orders-card-left">';
+                html += '<div class="orders-card-row1">';
+                html += '<span class="orders-card-id">Order #' + (order.orderId || 'N/A') + '</span>';
+                if (txnId) html += '<span class="orders-card-txn">' + txnId + '</span>';
+                html += '</div>';
+                html += '<div class="orders-card-row2">';
+                html += '<span class="orders-card-date">&#128197; ' + date + '</span>';
+                if (payMethod) html += '<span class="orders-card-payment-method">&#128179; ' + payMethod.replace('_', ' ') + '</span>';
+                if (address) html += '<span class="orders-card-address" title="' + address + '">&#128205; ' + address + '</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="orders-card-right">';
+                html += '<span class="orders-card-total">$' + totalAmount + '</span>';
+                html += '<span class="orders-card-status ' + statusClass + '">' + status + '</span>';
+                html += '<span class="orders-card-chevron">&#9660;</span>';
+                html += '</div>';
+                html += '</div>';
+
+                /* ── Body (accordion content) ── */
+                html += '<div class="orders-card-body">';
+                items.forEach(function(item) {
+                    html += '<div class="orders-card-item">';
+                    html += '<img src="' + (item.image || 'https://via.placeholder.com/56x56?text=Product') + '" class="orders-card-item-img">';
+                    html += '<div class="orders-card-item-info">';
+                    html += '<div class="orders-card-item-name">' + (item.title || 'Product') + '</div>';
+                    html += '<div class="orders-card-item-meta">Qty: ' + (item.quantity || 1) + (item.size ? ' &middot; Size: ' + item.size : '') + '</div>';
+                    html += '</div>';
+                    html += '<div class="orders-card-item-price">$' + parseFloat(item.price || 0).toFixed(2) + '</div>';
+                    html += '</div>';
+                });
+
+                html += '<div class="orders-card-footer">';
+                html += '<div class="orders-card-footer-total">Total: $' + totalAmount + '</div>';
+                if (payMethod) {
+                    html += '<div class="orders-card-footer-payment">Payment: ' + payMethod.replace('_', ' ') + (payStatus ? ' (' + payStatus + ')' : '') + '</div>';
+                }
+                html += '</div>';
+                html += '</div>'; /* card-body */
+                html += '</div>'; /* card */
+            });
+
+            document.getElementById('ordersList').innerHTML = html;
+
+            /* Auto-expand the first order */
+            setTimeout(function() { togglePageAccordion('orders-card-0'); }, 50);
+
+            /* Pagination */
+            if (totalPages > 1) {
+                var phtml = '';
+                for (var i = 1; i <= totalPages; i++) {
+                    phtml += '<a href="javascript:void(0)" onclick="loadPageOrders(' + i + ')" class="' + (i === currentOrdersPage ? 'active' : 'inactive') + '">' + i + '</a>';
+                }
+                document.getElementById('ordersPagination').innerHTML = phtml;
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('ordersLoading').style.display = 'none';
+            document.getElementById('ordersList').innerHTML = '<p style="text-align: center; color: #f44336;">Failed to load orders: ' + err.message + '</p>';
+        });
+}
+
+function togglePageAccordion(cardId) {
+    var card = document.getElementById(cardId);
+    if (!card) return;
+    var body = card.querySelector('.orders-card-body');
+    if (!body) return;
+
+    var isOpen = card.classList.contains('open');
+
+    /* Close ALL open cards first */
+    document.querySelectorAll('.orders-card.open').forEach(function(openCard) {
+        var ob = openCard.querySelector('.orders-card-body');
+        if (ob) {
+            ob.style.maxHeight = ob.scrollHeight + 'px';
+            requestAnimationFrame(function() {
+                ob.style.maxHeight = '0';
+                ob.style.paddingTop = '0';
+                ob.style.paddingBottom = '0';
+            });
+        }
+        openCard.classList.remove('open');
+    });
+
+    /* If it was closed, expand it */
+    if (!isOpen) {
+        card.classList.add('open');
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.style.paddingTop = '12px';
+        body.style.paddingBottom = '0';
+        body.addEventListener('transitionend', function handler() {
+            if (card.classList.contains('open')) {
+                body.style.maxHeight = 'none';
+            }
+            body.removeEventListener('transitionend', handler);
+        });
+    }
+}
+
+loadPageOrders(1);
+</script>
+</div>
+</body>
+</html>

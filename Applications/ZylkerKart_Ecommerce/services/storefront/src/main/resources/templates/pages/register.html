@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title>Register - ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+<style>
+    .register-container { max-width: 450px; margin: 40px auto; }
+    .register-card { background: #fff; border-radius: 8px; padding: 32px; border: 1px solid #eee; }
+    .register-card h2 { text-align: center; margin-bottom: 24px; color: #333; }
+    .register-form-group { margin-bottom: 16px; }
+    .register-form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    .register-form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .register-form-group input:focus { border-color: #0073e6; outline: none; }
+    .register-error { background: #fff3f3; border: 1px solid #ffcdd2; color: #c62828; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+    .register-btn { width: 100%; padding: 14px; background: #0073e6; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .register-btn:hover { background: #005bb5; }
+    .register-bottom { text-align: center; margin-top: 16px; color: #888; font-size: 14px; }
+    .register-bottom a { color: #0073e6; text-decoration: none; font-weight: 500; }
+    @media (max-width: 480px) {
+        .register-container { margin: 20px 16px; }
+        .register-card { padding: 24px; }
+        .register-card h2 { font-size: 20px; margin-bottom: 20px; }
+    }
+</style>
+
+<div class="register-container">
+    <div class="register-card">
+        <h2>&#128221; Create Account</h2>
+
+        <div class="register-error" th:if="${error}" th:text="${error}">Error message</div>
+
+        <form method="post" action="/register">
+            <div class="register-form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" th:value="${fullName}" required>
+            </div>
+            <div class="register-form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" th:value="${email}" required>
+            </div>
+            <div class="register-form-group">
+                <label for="phone">Phone Number</label>
+                <input type="text" id="phone" name="phone" placeholder="Enter your phone number" th:value="${phone}">
+            </div>
+            <div class="register-form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Create a password" required>
+            </div>
+            <div class="register-form-group">
+                <label for="password_confirmation">Confirm Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Confirm your password" required>
+            </div>
+            <button type="submit" class="register-btn">Create Account</button>
+        </form>
+
+        <div class="register-bottom">
+            Already have an account? <a href="/login">Sign In</a>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>
