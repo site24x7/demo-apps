@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/app}">
+<head><title th:text="${title}">Product Detail - ZylkerKart</title></head>
+<body>
+<div layout:fragment="content">
+<style>
+    .pd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; }
+    .pd-main-img { width: 100%; border-radius: 8px; max-height: 500px; object-fit: contain; background: #f8f8f8; border: 1px solid #eee; }
+    .pd-thumbs { display: flex; gap: 10px; margin-top: 15px; overflow-x: auto; }
+    .pd-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 2px solid #eee; cursor: pointer; transition: border-color 0.2s; }
+    .pd-thumb:hover, .pd-thumb.active { border-color: #0073e6; }
+    .pd-brand { color: #888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pd-title { font-size: 22px; margin: 8px 0 4px; font-weight: 600; color: #222; line-height: 1.3; }
+    .pd-rating-bar { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0; }
+    .pd-rating-badge { background: #388e3c; color: #fff; padding: 3px 10px; border-radius: 3px; font-weight: 600; font-size: 14px; }
+    .pd-rating-count { color: #888; font-size: 14px; }
+    .pd-price-block { margin: 16px 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .pd-final-price { font-size: 28px; font-weight: 700; color: #212121; }
+    .pd-orig-price { text-decoration: line-through; color: #999; font-size: 16px; }
+    .pd-discount { color: #388e3c; font-size: 16px; font-weight: 600; }
+    .pd-stock { margin: 12px 0; padding: 10px 15px; border-radius: 6px; font-size: 14px; font-weight: 500; }
+    .pd-stock.in { background: #e8f5e9; color: #2e7d32; }
+    .pd-sizes { margin: 16px 0; }
+    .pd-sizes strong { font-size: 14px; color: #333; }
+    .pd-size-list { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .pd-size-btn { padding: 8px 18px; border: 1px solid #ddd; border-radius: 20px; cursor: pointer; font-size: 14px; background: #fff; transition: all 0.2s; }
+    .pd-size-btn:hover { border-color: #0073e6; color: #0073e6; }
+    .pd-size-btn.selected { border-color: #0073e6; background: #e3f2fd; color: #0073e6; font-weight: 600; }
+    .pd-actions { margin: 20px 0; display: flex; gap: 12px; }
+    .pd-btn-cart { flex: 1; font-size: 16px; padding: 14px; background: #0073e6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    .pd-btn-cart:hover { background: #005bb5; }
+    .pd-btn-buy { flex: 1; background: #ff9800; color: #fff; border: none; padding: 14px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    .pd-btn-buy:hover { background: #e68900; }
+    .pd-delivery { margin: 20px 0; padding: 16px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; }
+    .pd-delivery h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .pd-delivery-list { display: flex; flex-wrap: wrap; gap: 12px; }
+    .pd-delivery-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; background: #fff; padding: 8px 14px; border-radius: 6px; border: 1px solid #e8e8e8; }
+    .pd-delivery-icon { font-size: 18px; }
+    .pd-offers { margin: 16px 0; }
+    .pd-offers h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px; }
+    .pd-section { margin-top: 36px; }
+    .pd-section-title { font-size: 18px; font-weight: 700; color: #222; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #0073e6; display: inline-block; }
+    .pd-details-tabs { display: flex; gap: 0; border-bottom: 2px solid #eee; margin-bottom: 16px; }
+    .pd-details-tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .pd-details-tab:hover { color: #0073e6; }
+    .pd-details-tab.active { color: #0073e6; border-bottom-color: #0073e6; font-weight: 600; }
+    .pd-details-content { font-size: 14px; line-height: 1.7; color: #444; }
+    .pd-details-pane { display: none; }
+    .pd-details-pane.active { display: block; }
+    .pd-specs-table { width: 100%; border-collapse: collapse; }
+    .pd-specs-table tr { border-bottom: 1px solid #f0f0f0; }
+    .pd-specs-table td { padding: 10px 0; font-size: 14px; }
+    .pd-specs-table td:first-child { color: #888; width: 40%; }
+    .pd-reviews { margin: 16px 0; }
+    .pd-review-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .pd-review-label { font-size: 13px; color: #555; min-width: 120px; }
+    .pd-review-bar { flex: 1; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; max-width: 200px; }
+    .pd-review-fill { height: 100%; background: #0073e6; border-radius: 4px; transition: width 0.3s; }
+    .pd-review-pct { font-size: 13px; color: #333; font-weight: 600; min-width: 40px; }
+    @media (max-width: 768px) {
+        .pd-grid { grid-template-columns: 1fr; gap: 20px; }
+        .pd-title { font-size: 18px; }
+        .pd-final-price { font-size: 24px; }
+        .pd-actions { flex-direction: column; }
+        .pd-btn-cart, .pd-btn-buy { font-size: 15px; padding: 13px; }
+        .pd-delivery-list { flex-direction: column; }
+        .pd-main-img { max-height: 350px; }
+        .pd-thumbs { gap: 8px; }
+        .pd-thumb { width: 60px; height: 60px; }
+    }
+    @media (max-width: 480px) {
+        .pd-title { font-size: 16px; }
+        .pd-final-price { font-size: 22px; }
+        .pd-orig-price { font-size: 14px; }
+        .pd-discount { font-size: 14px; }
+        .pd-btn-cart, .pd-btn-buy { font-size: 14px; padding: 12px; }
+        .pd-main-img { max-height: 280px; }
+        .pd-thumb { width: 52px; height: 52px; }
+        .pd-details-tab { padding: 8px 14px; font-size: 13px; }
+        .pd-section-title { font-size: 16px; }
+    }
+</style>
+
+<div class="pd-grid">
+    <!-- Product Images -->
+    <div>
+        <th:block th:if="${product['images'] != null and !product['images'].isEmpty()}">
+            <img id="mainImage" th:src="${product['images'][0]}" th:alt="${product['productDescription']}" class="pd-main-img">
+            <div class="pd-thumbs" th:if="${product['images'].size() > 1}">
+                <img th:each="img,iterStat : ${product['images']}" th:src="${img}" alt="thumbnail"
+                     class="pd-thumb" th:classappend="${iterStat.index == 0 ? 'active' : ''}"
+                     th:data-img="${img}" onclick="switchImage(this, this.dataset.img)">
+            </div>
+        </th:block>
+        <img th:unless="${product['images'] != null and !product['images'].isEmpty()}"
+             src="https://via.placeholder.com/500x400?text=No+Image" class="pd-main-img">
+    </div>
+
+    <!-- Product Info -->
+    <div>
+        <div class="pd-brand" th:text="${product['title']}">Brand</div>
+        <h1 class="pd-title" th:text="${product['productDescription'] ?: 'Product'}">Product Name</h1>
+
+        <!-- Category breadcrumb -->
+        <div th:if="${product['categoryGroup'] != null or product['subcategory'] != null}" style="font-size: 12px; color: #999; margin-bottom: 6px;">
+            <a href="/products" style="color: #999; text-decoration: none;">Home</a>
+            <th:block th:if="${product['categoryGroup'] != null}">
+                &rsaquo; <a th:href="'/products?category=' + ${product['categoryGroup']}" style="color: #888; text-decoration: none;" th:text="${product['categoryGroup']}">Category</a>
+            </th:block>
+            <th:block th:if="${product['subcategory'] != null}">
+                &rsaquo; <span style="color: #666;" th:text="${product['subcategory']}">Subcategory</span>
+            </th:block>
+        </div>
+
+        <div th:if="${product['rating'] != null}" class="pd-rating-bar">
+            <span class="pd-rating-badge">&#11088; <span th:text="${product['rating']}">4.5</span></span>
+            <span th:if="${product['ratingsCount'] != null}" class="pd-rating-count" th:text="${#numbers.formatInteger(product['ratingsCount'], 1, 'COMMA')} + ' ratings'">100 ratings</span>
+        </div>
+
+        <div class="pd-price-block">
+            <span class="pd-final-price" th:text="${product['finalPrice'] ?: '$0'}">$0</span>
+            <span class="pd-orig-price"
+                  th:if="${product['initialPrice'] != null and product['initialPrice'] != (product['finalPrice'] ?: '')}"
+                  th:text="'$' + ${product['initialPrice']}">$100</span>
+            <span class="pd-discount"
+                  th:if="${product['discount'] != null and product['discount'] > 0}"
+                  th:text="'(' + ${product['discount']} + '% off)'">10% off</span>
+        </div>
+
+        <div class="pd-stock in">&#9989; In Stock</div>
+
+        <!-- Sizes -->
+        <div th:if="${product['sizes'] != null and !product['sizes'].isEmpty()}" class="pd-sizes">
+            <strong>Select Size:</strong>
+            <div class="pd-size-list">
+                <span th:each="size : ${product['sizes']}" class="pd-size-btn" onclick="selectSize(this)" th:text="${size['size']}">M</span>
+            </div>
+        </div>
+
+        <!-- Add to Cart / Buy Now -->
+        <div class="pd-actions">
+            <button class="pd-btn-cart" th:data-pid="${product['productId'] ?: 0}" onclick="addToCart(+this.dataset.pid)">&#128722; Add to Cart</button>
+            <button class="pd-btn-buy" th:data-pid="${product['productId'] ?: 0}" onclick="buyNow(+this.dataset.pid)">&#9889; Buy Now</button>
+        </div>
+
+        <!-- Delivery Options -->
+        <th:block th:if="${product['deliveryOptions'] != null and !product['deliveryOptions'].isEmpty()}">
+            <div class="pd-delivery">
+                <h3>&#128230; Delivery &amp; Services</h3>
+                <div class="pd-delivery-list">
+                    <div th:each="opt : ${product['deliveryOptions']}" class="pd-delivery-item">
+                        <span class="pd-delivery-icon">&#10004;&#65039;</span>
+                        <span th:text="${opt}">Option</span>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+
+        <!-- Product Details (tabbed) -->
+        <th:block th:if="${product['productDetails'] != null}">
+            <div class="pd-section">
+                <h2 class="pd-section-title">Product Details</h2>
+                <div class="pd-details-tabs" id="detailTabs">
+                    <div th:if="${product['productDetails']['description'] != null}" class="pd-details-tab active" onclick="switchTab('desc')">Description</div>
+                    <div th:if="${product['productDetails']['material_and_care'] != null}" class="pd-details-tab" onclick="switchTab('material')">Material &amp; Care</div>
+                    <div th:if="${product['productDetails']['size_and_fit'] != null}" class="pd-details-tab" onclick="switchTab('sizefit')">Size &amp; Fit</div>
+                </div>
+                <div class="pd-details-content">
+                    <div th:if="${product['productDetails']['description'] != null}" class="pd-details-pane active" id="pane-desc" th:text="${product['productDetails']['description']}">Desc</div>
+                    <div th:if="${product['productDetails']['material_and_care'] != null}" class="pd-details-pane" id="pane-material" th:text="${product['productDetails']['material_and_care']}">Material</div>
+                    <div th:if="${product['productDetails']['size_and_fit'] != null}" class="pd-details-pane" id="pane-sizefit" th:text="${product['productDetails']['size_and_fit']}">Size</div>
+                </div>
+            </div>
+        </th:block>
+
+        <!-- Specifications -->
+        <div th:if="${product['specifications'] != null and !product['specifications'].isEmpty()}" class="pd-section">
+            <h2 class="pd-section-title">Specifications</h2>
+            <table class="pd-specs-table">
+                <tr th:each="spec : ${product['specifications']}">
+                    <td th:text="${spec['name'] ?: spec['specName']}">Spec</td>
+                    <td th:text="${spec['value'] ?: spec['specValue']}">Value</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- What Customers Said -->
+        <div th:if="${product['whatCustomersSaid'] != null and !product['whatCustomersSaid'].isEmpty()}" class="pd-section">
+            <h2 class="pd-section-title">What Customers Said</h2>
+            <div class="pd-reviews">
+                <div th:each="review : ${product['whatCustomersSaid']}" class="pd-review-item">
+                    <span class="pd-review-label" th:text="${review['value_name']}">Label</span>
+                    <div class="pd-review-bar">
+                        <div class="pd-review-fill" th:style="'width: ' + ${review['percentage'] ?: 0} + '%'"></div>
+                    </div>
+                    <span class="pd-review-pct" th:text="${review['percentage'] ?: 0} + '%'">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+var productData = {
+    productId: [[${product['productId'] ?: 0}]],
+    title: [[${product['title'] ?: ''}]],
+    price: parseFloat(String([[${product['finalPrice'] ?: 0}]]).replace(/[^0-9.]/g, '')) || 0,
+    image: [[${product['images'] != null and !product['images'].isEmpty() ? product['images'][0] : ''}]]
+};
+
+function switchImage(thumb, url) {
+    document.getElementById('mainImage').src = url;
+    document.querySelectorAll('.pd-thumb').forEach(function(t) { t.classList.remove('active'); });
+    thumb.classList.add('active');
+}
+
+function selectSize(btn) {
+    document.querySelectorAll('.pd-size-btn').forEach(function(b) { b.classList.remove('selected'); });
+    btn.classList.add('selected');
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.pd-details-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.pd-details-pane').forEach(function(p) { p.classList.remove('active'); });
+    event.target.classList.add('active');
+    var pane = document.getElementById('pane-' + tab);
+    if (pane) pane.classList.add('active');
+}
+
+function getSessionId() {
+    return document.querySelector('meta[name="cart-session"]').content;
+}
+
+function addToCart(productId) {
+    fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sessionId: getSessionId(),
+            productId: productId,
+            title: productData.title,
+            price: productData.price,
+            quantity: 1,
+            image: productData.image
+        })
+    })
+    .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+    .then(function(result) {
+        if (result.ok) {
+            updateCartBadge(result.data.itemCount || 0);
+            showToast('✓ Added to cart');
+        } else {
+            showToast('✗ ' + (result.data.error || 'Failed to add'), 3000);
+        }
+    })
+    .catch(function(err) { showToast('✗ ' + err.message, 3000); });
+}
+
+function buyNow(productId) {
+    var btn = document.querySelector('.pd-btn-buy');
+    var origText = btn.textContent;
+    btn.textContent = '⏳ Processing...';
+    btn.disabled = true;
+    var selectedSize = document.querySelector('.pd-size-btn.selected');
+    fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sessionId: getSessionId(),
+            productId: productId,
+            title: productData.title,
+            price: productData.price,
+            quantity: 1,
+            image: productData.image,
+            size: selectedSize ? selectedSize.textContent.trim() : null
+        })
+    })
+    .then(function(response) {
+        if (response.ok) {
+            window.location.href = '/checkout';
+        } else {
+            return response.json().then(function(data) {
+                showToast('✗ ' + (data.error || 'Failed to add to cart'), 3000);
+                btn.textContent = origText;
+                btn.disabled = false;
+            });
+        }
+    })
+    .catch(function(err) {
+        showToast('✗ ' + err.message, 3000);
+        btn.textContent = origText;
+        btn.disabled = false;
+    });
+}
+</script>
+</div>
+</body>
+</html>

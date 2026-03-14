@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - ZylkerKart</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #333; }
+        .error-page { text-align: center; padding: 80px 20px; max-width: 500px; margin: 0 auto; }
+        .error-logo { font-size: 24px; font-weight: 700; color: #0073e6; margin-bottom: 40px; }
+        .error-code { font-size: 96px; font-weight: 800; color: #e0e0e0; line-height: 1; margin-bottom: 10px; }
+        .error-title { font-size: 22px; font-weight: 600; color: #333; margin-bottom: 12px; }
+        .error-msg { font-size: 15px; color: #777; margin-bottom: 30px; line-height: 1.5; }
+        .error-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .error-btn { padding: 12px 28px; border-radius: 6px; font-size: 15px; font-weight: 600; text-decoration: none; transition: background 0.2s; }
+        .error-btn-primary { background: #0073e6; color: #fff; border: none; }
+        .error-btn-primary:hover { background: #005bb5; }
+        .error-btn-secondary { background: #fff; color: #0073e6; border: 2px solid #0073e6; }
+        .error-btn-secondary:hover { background: #e3f2fd; }
+    </style>
+</head>
+<body>
+<div class="error-page">
+    <div class="error-logo">ZylkerKart</div>
+    <div class="error-code" th:text="${status ?: 500}">500</div>
+    <h1 class="error-title">Something went wrong</h1>
+    <p class="error-msg">We're having trouble loading this page. Please try again in a moment.</p>
+    <div class="error-actions">
+        <a href="/" class="error-btn error-btn-primary">Go Home</a>
+        <a href="/products" class="error-btn error-btn-secondary">Browse Products</a>
+    </div>
+</div>
+</body>
+</html>
