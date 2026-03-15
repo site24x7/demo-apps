@@ -1,0 +1,5 @@
+# Azure AKS values - use managed-premium storage class
+storageClass: "managed-premium"
+
+# Or use standard for HDD
+# storageClass: "standard"

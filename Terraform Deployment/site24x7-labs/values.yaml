@@ -1,0 +1,211 @@
+# =============================================================================
+# Site24x7 Labs Helm Chart — Default Values
+# =============================================================================
+# See the README or NOTES.txt for installation instructions.
+# Required values (must be set via --set or values file):
+#   - auth.jwtSecret
+#   - auth.adminPassword
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+image:
+  server:
+    repository: ghcr.io/pazhanir/site24x7-labs-server
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  agent:
+    repository: ghcr.io/pazhanir/site24x7-labs-agent
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: ghcr.io/pazhanir/site24x7-labs-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Storage class - set to "gp2" for AWS EKS, "managed-premium" for Azure AKS, "standard" for GCP GKE
+storageClass: ""
+
+# ---------------------------------------------------------------------------
+# Server — Go API + gRPC
+# ---------------------------------------------------------------------------
+server:
+  replicaCount: 1
+  httpPort: 8080
+  grpcPort: 9090
+  resources:
+    limits:
+      cpu: "2"
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Frontend — React SPA served via Nginx
+# ---------------------------------------------------------------------------
+frontend:
+  enabled: true
+  replicaCount: 1
+  port: 80
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 32Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Agent — Chaos Engineering DaemonSet
+# ---------------------------------------------------------------------------
+# Agents are deployed as a DaemonSet (one pod per node). They connect back
+# to the server via gRPC and execute chaos experiments on that node's pods.
+agent:
+  enabled: true
+  privileged: true              # Set false to use fine-grained capabilities instead
+  hostNetwork: false            # Set true if agents need host network access
+  environmentID: ""             # Default environment ID (override per-deployment)
+  agentName: ""                 # Agent name (defaults to node name via downward API)
+  enableKubernetes: true        # Enable Kubernetes discovery plugin
+  enableDocker: false           # Docker not typically used in K8s
+  enableHost: true              # Enable host-level chaos operations
+  chaosConfigDir: /var/site24x7-labs/faults   # SDK config file directory
+  resources:
+    limits:
+      cpu: "1"
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+    # Uncomment to tolerate all taints so the agent runs on every node:
+    # - operator: Exists
+
+# ---------------------------------------------------------------------------
+# Database — Bitnami PostgreSQL subchart
+# ---------------------------------------------------------------------------
+# Set postgresql.enabled=false and configure externalDatabase to use your own.
+postgresql:
+  enabled: true
+  auth:
+    username: site24x7labs
+    password: ""        # Set via --set or secrets
+    database: site24x7labs
+  primary:
+    persistence:
+      size: 10Gi
+      storageClass: ""  # Set via global storageClass
+    resources:
+      limits:
+        cpu: "2"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+# External DB (when postgresql.enabled=false)
+externalDatabase:
+  host: ""
+  port: 5432
+  user: site24x7labs
+  password: ""
+  database: site24x7labs
+  sslmode: disable
+
+# ---------------------------------------------------------------------------
+# Redis — Bitnami Redis subchart
+# ---------------------------------------------------------------------------
+# Set redis.enabled=false and configure externalRedis to use your own.
+redis:
+  enabled: true
+  auth:
+    enabled: false
+    password: ""
+  master:
+    persistence:
+      size: 2Gi
+      storageClass: ""  # Set via global storageClass
+    resources:
+      limits:
+        cpu: "1"
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  replica:
+    persistence:
+      storageClass: ""  # Set via global storageClass
+
+# External Redis (when redis.enabled=false)
+externalRedis:
+  host: ""
+  port: 6379
+  password: ""
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+auth:
+  jwtSecret: ""         # [REQUIRED] Set via --set or secrets
+  jwtExpiryHours: 24
+  bcryptCost: 12
+  adminEmail: admin@site24x7labs.local
+  adminPassword: ""     # [REQUIRED] Set via --set or secrets
+  agentToken: ""        # Token for agent authentication
+
+# ---------------------------------------------------------------------------
+# CORS
+# ---------------------------------------------------------------------------
+cors:
+  allowedOrigins: "https://labs.site24x7.com"
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: labs.site24x7.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: site24x7-labs-tls
+    #   hosts:
+    #     - labs.site24x7.com
+
+# ---------------------------------------------------------------------------
+# Services
+# ---------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  httpPort: 8080
+  grpcPort: 9090
+
+serviceFrontend:
+  type: ClusterIP
+  port: 80
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  level: info
+  format: json
