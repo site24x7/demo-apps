@@ -1,0 +1,28 @@
+apiVersion: v2
+name: site24x7-labs
+description: Site24x7 Labs Chaos Engineering Platform
+type: application
+version: 0.2.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Site24x7 Labs Team
+    email: labs@site24x7.com
+keywords:
+  - chaos-engineering
+  - reliability
+  - site24x7
+  - fault-injection
+home: https://github.com/pazhanir/site24x7-labs
+icon: https://www.site24x7.com/favicon.ico
+
+# Optional subchart dependencies - set postgresql.enabled / redis.enabled to false
+# and configure externalDatabase / externalRedis to use your own instances.
+dependencies:
+  - name: postgresql
+    version: ">=16.0.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: ">=20.0.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

@@ -1,0 +1,231 @@
+{{- if .Values.agent.enabled }}
+# =============================================================================
+# Agent DaemonSet — one chaos agent per Kubernetes node
+# =============================================================================
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "site24x7-labs.fullname" . }}-agent
+  labels:
+    {{- include "site24x7-labs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  selector:
+    matchLabels:
+      {{- include "site24x7-labs.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        {{- include "site24x7-labs.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "site24x7-labs.fullname" . }}-agent
+      hostPID: true
+      {{- if .Values.agent.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: ["sh", "-c", "mkdir -p /var/site24x7-labs/faults && chmod 777 /var/site24x7-labs/faults"]
+          volumeMounts:
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          securityContext:
+            runAsUser: 0
+      containers:
+        - name: agent
+          image: "{{ .Values.image.agent.repository }}:{{ .Values.image.agent.tag }}"
+          imagePullPolicy: {{ .Values.image.agent.pullPolicy }}
+          env:
+            # --- Server connection ---
+            - name: SERVER_ADDRESS
+              value: "{{ include "site24x7-labs.fullname" . }}-server:{{ .Values.service.grpcPort }}"
+            - name: AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "site24x7-labs.fullname" . }}-secrets
+                  key: AGENT_TOKEN
+            # --- Agent identity ---
+            - name: AGENT_NAME
+              {{- if .Values.agent.agentName }}
+              value: {{ .Values.agent.agentName | quote }}
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+              {{- end }}
+            - name: AGENT_ENVIRONMENT
+              value: {{ .Values.agent.environmentID | default "" | quote }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # --- Plugin toggles ---
+            - name: ENABLE_KUBERNETES
+              value: {{ .Values.agent.enableKubernetes | default true | quote }}
+            - name: ENABLE_DOCKER
+              value: {{ .Values.agent.enableDocker | default false | quote }}
+            - name: ENABLE_HOST
+              value: {{ .Values.agent.enableHost | default true | quote }}
+            # --- Chaos SDK config ---
+            - name: CHAOS_CONFIG_DIR
+              value: {{ .Values.agent.chaosConfigDir | default "/var/site24x7-labs/faults" | quote }}
+            # --- Logging ---
+            - name: LOG_LEVEL
+              value: {{ .Values.logging.level | default "info" | quote }}
+            - name: LOG_FORMAT
+              value: {{ .Values.logging.format | default "json" | quote }}
+          securityContext:
+            {{- if .Values.agent.privileged }}
+            privileged: true
+            {{- else }}
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_PTRACE
+                - SYS_ADMIN
+                - KILL
+            {{- end }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: cgroup
+              mountPath: /host/cgroup
+              readOnly: true
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pgrep -f site24x7-labs-agent
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pgrep -f site24x7-labs-agent
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+# =============================================================================
+# Agent RBAC — ServiceAccount, ClusterRole, ClusterRoleBinding
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "site24x7-labs.fullname" . }}-agent
+  labels:
+    {{- include "site24x7-labs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "site24x7-labs.fullname" . }}-agent
+  labels:
+    {{- include "site24x7-labs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+rules:
+  # Pod chaos: kill, delete, restart
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete", "deletecollection"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  # Service discovery
+  - apiGroups: [""]
+    resources: ["services", "endpoints", "nodes"]
+    verbs: ["get", "list", "watch"]
+  # ConfigMap reading (for dependency inference via env var resolution)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  # Deployment scaling / rollout
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  # Network policies (for network chaos)
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  # Events (for observability)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "site24x7-labs.fullname" . }}-agent
+  labels:
+    {{- include "site24x7-labs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "site24x7-labs.fullname" . }}-agent
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "site24x7-labs.fullname" . }}-agent
+    namespace: {{ .Release.Namespace }}
+{{- end }}
