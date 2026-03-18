@@ -15,7 +15,7 @@ locals {
     "--resource-group", var.azure_resource_group_name,
     "--name", var.cluster_name,
     "--overwrite-existing"
-  ]) : join(" ", [
+    ]) : join(" ", [
     "aws", "eks", "update-kubeconfig",
     "--region", var.aws_region,
     "--name", var.cluster_name
@@ -29,8 +29,6 @@ locals {
 
 resource "terraform_data" "site24x7_env_setup" {
   depends_on = [terraform_data.k8s_ready]
-
-  triggers_replace = [timestamp()]
 
   input = {
     server           = var.site24x7_server

@@ -2513,12 +2513,22 @@ resource "terraform_data" "k8s_ready" {
   input = "all-k8s-deployed"
 
   depends_on = [
+    # Core application deployments
     kubernetes_deployment.order_service,
     kubernetes_deployment.storefront,
     kubernetes_deployment.search_service,
     kubernetes_deployment.product_service,
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
+    # Ingress controller + routing
+    helm_release.ingress_nginx,
+    kubernetes_ingress_v1.zylkerkart,
+    # Site24x7 Go APM Exporter DaemonSet
+    kubernetes_daemonset.go_apm_exporter,
+    # Site24x7 Server Monitoring Agent DaemonSet
+    kubernetes_daemonset.site24x7_agent,
+    # Kube State Metrics deployment
+    kubernetes_deployment.site24x7_ksm,
   ]
 }
 

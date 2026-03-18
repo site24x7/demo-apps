@@ -60,7 +60,11 @@ data "http" "apm_apps" {
     Accept        = "application/json; version=2.0"
     Authorization = "Zoho-oauthtoken ${data.external.site24x7_token[0].result["access_token"]}"
   }
-  depends_on = [null_resource.wait_for_apm_agents]
+  depends_on = [
+    null_resource.wait_for_apm_agents,
+    terraform_data.k8s_ready,
+  ]
+
 }
 
 # ──────────────────────────────────────────────
@@ -145,6 +149,8 @@ resource "terraform_data" "apm_state_refresh" {
   count = local.enable_apm ? 1 : 0
 
   triggers_replace = [timestamp()]
+
+  depends_on = [data.http.apm_apps]
 
   input = {
     state_file = "${abspath(path.module)}/apm_monitors_state.json"
