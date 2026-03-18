@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [string]$FrontendIP,
+    [string]${site24x7_server},
 
     [Parameter(Mandatory=$true)]
     [string]$EnvironmentName,
@@ -22,7 +22,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$baseUrl = "http://${FrontendIP}"
+$baseUrl = "http://${site24x7_server}"
 
 # ----------------------------------------------
 # 1. Wait for the API to be reachable
@@ -129,59 +129,3 @@ if (-not $agentToken) {
     exit 1
 }
 Write-Host "  Agent token: $($agentToken.Substring(0,20))..." -ForegroundColor Green
-
-# ----------------------------------------------
-# 4. Base64-encode token and patch K8s secret
-# ----------------------------------------------
-Write-Host "Patching K8s secret 'site24x7-labs-secrets' in namespace '$Namespace' ..." -ForegroundColor Cyan
-$tokenBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($agentToken))
-
-# Build the JSON patch payload and write to a temp file to avoid shell quoting issues
-$patchJson = @{
-    data = @{
-        AGENT_TOKEN = $tokenBase64
-    }
-} | ConvertTo-Json -Compress
-
-$patchFile = [System.IO.Path]::GetTempFileName()
-Set-Content -Path $patchFile -Value $patchJson -Encoding UTF8
-
-kubectl patch secret site24x7-labs-secrets `
-    -n $Namespace `
-    --type merge `
-    --patch-file $patchFile
-
-$patchExitCode = $LASTEXITCODE
-Remove-Item -Path $patchFile -Force -ErrorAction SilentlyContinue
-
-if ($patchExitCode -ne 0) {
-    Write-Error "Failed to patch K8s secret (exit code $patchExitCode)"
-    exit 1
-}
-Write-Host "  Secret patched successfully." -ForegroundColor Green
-
-# ----------------------------------------------
-# 5. Restart the agent DaemonSet
-# ----------------------------------------------
-Write-Host "Restarting DaemonSet 'site24x7-labs-agent' ..." -ForegroundColor Cyan
-kubectl rollout restart daemonset/site24x7-labs-agent -n $Namespace
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Failed to restart DaemonSet (exit code $LASTEXITCODE)"
-    exit 1
-}
-
-Write-Host "Waiting for DaemonSet rollout to complete ..." -ForegroundColor Cyan
-kubectl rollout status daemonset/site24x7-labs-agent -n $Namespace --timeout=120s
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "WARNING: DaemonSet rollout did not complete within 120s, but agent will eventually pick up the new token." -ForegroundColor Yellow
-} else {
-    Write-Host "  DaemonSet rollout complete." -ForegroundColor Green
-}
-
-Write-Host ""
-Write-Host "Site24x7 Labs post-deployment setup complete!" -ForegroundColor Green
-Write-Host "  Frontend URL : $baseUrl" -ForegroundColor White
-Write-Host "  Environment  : $EnvironmentName" -ForegroundColor White
-Write-Host "  Agent Token  : $($agentToken.Substring(0,20))..." -ForegroundColor White

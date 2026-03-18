@@ -365,7 +365,7 @@ resource "kubernetes_deployment" "product_service" {
 
           env {
             name  = "JAVA_TOOL_OPTIONS"
-            value = "-javaagent:/home/apm/apminsight-javaagent.jar -Dapminsight.application.name=ZylkerKart-ProductService"
+            value = "-javaagent:/home/apm/apminsight-javaagent.jar -Dapminsight.application.name=ZylkerKart-ProductService${local.ticket_suffix}"
           }
           env {
             name = "S247_LICENSE_KEY"
@@ -556,7 +556,7 @@ resource "kubernetes_deployment" "order_service" {
           }
           env {
             name  = "APMINSIGHT_APP_NAME"
-            value = "ZylkerKart-OrderService"
+            value = "ZylkerKart-OrderService${local.ticket_suffix}"
           }
           env {
             name  = "APMINSIGHT_APP_PORT"
@@ -955,7 +955,7 @@ resource "kubernetes_deployment" "payment_service" {
           }
           env {
             name  = "APM_APP_NAME"
-            value = "ZylkerKart-PaymentService"
+            value = "ZylkerKart-PaymentService${local.ticket_suffix}"
           }
           env {
             name = "S247_LICENSE_KEY"
@@ -1181,7 +1181,7 @@ resource "kubernetes_deployment" "auth_service" {
           }
           env {
             name  = "SITE24X7_APP_NAME"
-            value = "ZylkerKart-AuthService"
+            value = "ZylkerKart-AuthService${local.ticket_suffix}"
           }
           env {
             name  = "PORT"
@@ -1373,7 +1373,7 @@ resource "kubernetes_deployment" "storefront" {
 
           env {
             name  = "JAVA_TOOL_OPTIONS"
-            value = "-javaagent:/home/apm/apminsight-javaagent.jar -Dapminsight.application.name=ZylkerKart-Storefront"
+            value = "-javaagent:/home/apm/apminsight-javaagent.jar -Dapminsight.application.name=ZylkerKart-Storefront${local.ticket_suffix}"
           }
           env {
             name  = "SERVER_PORT"
@@ -1698,7 +1698,7 @@ resource "kubernetes_config_map" "apm_apps_config" {
   }
 
   data = {
-    go_apps = "ZylkerKart-SearchService=search-service:8083"
+    go_apps = "ZylkerKart-SearchService${local.ticket_suffix}=search-service:8083"
   }
 }
 
@@ -2147,6 +2147,10 @@ resource "kubernetes_daemonset" "site24x7_agent" {
             value = "kubernetes"
           }
           env {
+            name  = "KUBE_API_SERVER"
+            value = local.effective_cluster_name
+          }
+          env {
             name = "NODE_IP"
             value_from {
               field_ref {
@@ -2516,4 +2520,41 @@ resource "terraform_data" "k8s_ready" {
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
   ]
+}
+
+# ════════════════════════════════════════════════════════════════════════════
+# ELB cleanup wait — ensures AWS deprovisions LoadBalancer ELBs before the
+# IGW/VPC is destroyed.
+#
+# Terraform destroy order explanation:
+#   - null_resource.wait_for_elb_cleanup depends_on helm_release + storefront
+#   - aws_internet_gateway depends_on null_resource
+#
+#   Creation:  helm/storefront → null_resource → IGW
+#   Destroy:   IGW → null_resource (sleep + kubectl delete) → helm/storefront
+#
+#   So when IGW destroy is attempted, null_resource fires its provisioner FIRST
+#   (deletes LB services, waits 90s for AWS ELB release), then IGW proceeds.
+# ════════════════════════════════════════════════════════════════════════════
+resource "null_resource" "wait_for_elb_cleanup" {
+  count = var.cloud_provider == "aws" ? 1 : 0
+
+  triggers = {
+    cluster_name = local.effective_cluster_name
+    aws_region   = var.aws_region
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      echo "Updating kubeconfig..."
+      aws eks update-kubeconfig --region ${self.triggers.aws_region} --name ${self.triggers.cluster_name} 2>/dev/null || true
+      echo "Deleting LoadBalancer services to trigger ELB deprovisioning..."
+      kubectl delete svc storefront -n zylkerkart --ignore-not-found=true 2>/dev/null || true
+      kubectl delete svc ingress-nginx-controller -n ingress-nginx --ignore-not-found=true 2>/dev/null || true
+      echo "Waiting 90s for AWS ELBs to fully deprovision and release Elastic IPs..."
+      sleep 90
+      echo "ELB cleanup wait complete."
+    EOT
+  }
 }

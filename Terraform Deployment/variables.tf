@@ -17,6 +17,12 @@ variable "cluster_name" {
   default     = "zylkerkart-cluster"
 }
 
+variable "ticket_id" {
+  description = "Ticket ID to append to cluster name and APM application names for unique identification"
+  type        = string
+  default     = ""
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
@@ -97,9 +103,11 @@ variable "jwt_secret" {
 
 # ── Computed locals ──
 locals {
-  enable_apm    = var.site24x7_license_key != ""
-  node_size     = var.cloud_provider == "azure" ? "Standard_D4s_v3" : "t3.xlarge"
-  storage_class = var.cloud_provider == "azure" ? "default" : "gp2"
+  enable_apm             = var.site24x7_license_key != ""
+  node_size              = var.cloud_provider == "azure" ? "Standard_D4s_v3" : "t3.xlarge"
+  storage_class          = var.cloud_provider == "azure" ? "default" : "gp2"
+  ticket_suffix          = var.ticket_id != "" ? "-${var.ticket_id}" : ""
+  effective_cluster_name = "${var.cluster_name}${local.ticket_suffix}"
 }
 
 variable "apm_app_name_prefix" {
@@ -112,4 +120,58 @@ variable "expected_app_count" {
   description = "Number of APM applications expected to register before proceeding"
   type        = number
   default     = 6
+}
+
+variable "site24x7_platform" {
+  description = "Target platform for the Site24x7 agent"
+  type        = string
+  default     = "kubernetes"
+  validation {
+    condition     = contains(["kubernetes", "docker", "compose", "windows"], var.site24x7_platform)
+    error_message = "Must be one of: kubernetes, docker, compose, windows."
+  }
+}
+
+
+variable "site24x7_server" {
+  description = "Site24x7 Labs server IP or hostname"
+  type        = string
+  default     = "204.168.155.117"
+}
+
+variable "site24x7_namespace" {
+  description = "Kubernetes namespace for the agent"
+  type        = string
+  default     = "site24x7-labs"
+}
+
+variable "site24x7_image" {
+  description = "Agent Docker image"
+  type        = string
+  default     = "impazhani/site24x7-labs-agent:v2-chaospage"
+}
+
+variable "site24x7_agent_name" {
+  description = "Optional agent name override"
+  type        = string
+  default     = "chaos"
+}
+
+variable "site24x7_admin_email" {
+  description = "Admin email for Site24x7 Labs login"
+  type        = string
+  default     = "admin@site24x7labs.local"
+}
+
+variable "site24x7_admin_password" {
+  description = "Admin password for Site24x7 Labs login"
+  type        = string
+  sensitive   = true
+  default     = "admin123"
+}
+
+variable "site24x7_environment_name" {
+  description = "Environment name to create/find in Site24x7 Labs"
+  type        = string
+  default     = "zylkerkart"
 }
