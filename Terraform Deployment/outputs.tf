@@ -115,14 +115,3 @@ output "total_skipped_apps" {
   sensitive = true
 
 }
-
-# ── Site24x7 Labs Chaos Engineering ──
-output "site24x7_labs_frontend_url" {
-  description = "URL for the Site24x7 Labs chaos engineering dashboard"
-  value       = "http://${local.site24x7_labs_frontend_ip}"
-}
-
-output "site24x7_labs_environment" {
-  description = "Name of the auto-created Site24x7 Labs environment"
-  value       = local.site24x7_labs_env_name
-}

@@ -112,6 +112,8 @@ resource "aws_eks_cluster" "eks" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy,
     aws_iam_role_policy_attachment.eks_vpc_resource_controller,
+    aws_internet_gateway.eks,
+    aws_route_table_association.eks,
   ]
 
   tags = {
@@ -179,6 +181,7 @@ resource "aws_eks_node_group" "default" {
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
     aws_iam_role_policy_attachment.eks_ecr_read,
+    aws_route_table_association.eks,
   ]
 
   tags = {

@@ -1,0 +1,19 @@
+=== Site24x7 Env Setup Log ===
+[18:02:13] Step 1 — Setting kubeconfig context (aws)...
+[18:02:16] Step 1 — kubeconfig context set successfully.
+[18:02:16] Step 2 — Verifying cluster connectivity...
+[18:02:21] Step 2 — Cluster is reachable.
+[18:02:21] Step 3 — Logging in to Site24x7 Labs...
+[18:02:21]   Server:          204.168.155.117
+[18:02:21]   EnvironmentName: zylkerkart
+[18:02:21]   Namespace:       site24x7-labs
+[18:02:21]   AdminEmail:      admin@site24x7labs.local
+[18:02:21]   Waiting for API at http://204.168.155.117 ...
+[18:02:22]   API reachable! (attempt 1/20)
+[18:02:22]   Login successful, JWT obtained.
+[18:02:22] Step 4 — Creating/finding environment 'zylkerkart'...
+[18:02:22]   Environment created.
+[18:02:22]   Agent token:    s24x7_at_5a58e38d851...
+[18:02:22]   Environment ID: 1cbfe50b-2679-4064-b14e-297b4791c547
+[18:02:22] Step 5 — Outputs written to ./.site24x7_env_output.json
+[18:02:22] SUCCESS: Environment setup complete.
