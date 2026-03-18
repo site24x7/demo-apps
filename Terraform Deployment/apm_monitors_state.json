@@ -1,10 +1,110 @@
 ﻿{
     "filter":  "ZylkerKart-",
-    "captured_at":  "2026-03-17T17:51:22.3259689+05:30",
+    "captured_at":  "2026-03-18T13:06:17.8630505+05:30",
     "applications":  [
-
+                         {
+                             "instance_count":  3,
+                             "application_id":  "607312000001372354",
+                             "application_name":  "ZylkerKart-SearchService"
+                         },
+                         {
+                             "instance_count":  1,
+                             "application_id":  "607312000001372383",
+                             "application_name":  "ZylkerKart-ProductService"
+                         },
+                         {
+                             "instance_count":  1,
+                             "application_id":  "607312000001372422",
+                             "application_name":  "ZylkerKart-Storefront"
+                         },
+                         {
+                             "instance_count":  1,
+                             "application_id":  "607312000002026016",
+                             "application_name":  "ZylkerKart-OrderService"
+                         },
+                         {
+                             "instance_count":  1,
+                             "application_id":  "607312000002026041",
+                             "application_name":  "ZylkerKart-AuthService"
+                         },
+                         {
+                             "instance_count":  1,
+                             "application_id":  "607312000002121003",
+                             "application_name":  "ZylkerKart-PaymentService"
+                         }
                      ],
     "instances":  [
-
+                      {
+                          "port":  8083,
+                          "instance_id":  "607312000001372461",
+                          "application_name":  "ZylkerKart-SearchService",
+                          "application_id":  "607312000001372354",
+                          "instance_name":  "cri-containerd-5c62d00fd8eda8c693d1a497b82851dd7db98728f4971bb7f7cbfc3c:8083",
+                          "host":  "cri-containerd-5c62d00fd8eda8c693d1a497b82851dd7db98728f4971bb7f7cbfc3c",
+                          "ins_type":  "GO"
+                      },
+                      {
+                          "port":  8083,
+                          "instance_id":  "607312000002026066",
+                          "application_name":  "ZylkerKart-SearchService",
+                          "application_id":  "607312000001372354",
+                          "instance_name":  "Instance_1",
+                          "host":  "cri-containerd-3e443216459942347bdf1bb2d261167feea1c037b2e95b205f203a97",
+                          "ins_type":  "GO"
+                      },
+                      {
+                          "port":  8083,
+                          "instance_id":  "607312000001372370",
+                          "application_name":  "ZylkerKart-SearchService",
+                          "application_id":  "607312000001372354",
+                          "instance_name":  "cri-containerd-8dace0059a0983fe49e52a04367b5d6b03c7a64d99cbe80eda5bc856:8083",
+                          "host":  "cri-containerd-8dace0059a0983fe49e52a04367b5d6b03c7a64d99cbe80eda5bc856",
+                          "ins_type":  "GO"
+                      },
+                      {
+                          "port":  8080,
+                          "instance_id":  "607312000001372395",
+                          "application_name":  "ZylkerKart-ProductService",
+                          "application_id":  "607312000001372383",
+                          "instance_name":  "Instance_1",
+                          "host":  "product-service-667845f7d8-vzsv6",
+                          "ins_type":  "JAVA"
+                      },
+                      {
+                          "port":  8080,
+                          "instance_id":  "607312000001372434",
+                          "application_name":  "ZylkerKart-Storefront",
+                          "application_id":  "607312000001372422",
+                          "instance_name":  "Instance_1",
+                          "host":  "storefront-699c945966-vvdjp",
+                          "ins_type":  "JAVA"
+                      },
+                      {
+                          "port":  8082,
+                          "instance_id":  "607312000002026028",
+                          "application_name":  "ZylkerKart-OrderService",
+                          "application_id":  "607312000002026016",
+                          "instance_name":  "Instance_1",
+                          "host":  "order-service-64fbffd7bb-qzf4r",
+                          "ins_type":  "NODEJS"
+                      },
+                      {
+                          "port":  80,
+                          "instance_id":  "607312000002026053",
+                          "application_name":  "ZylkerKart-AuthService",
+                          "application_id":  "607312000002026041",
+                          "instance_name":  "Instance_1",
+                          "host":  "auth-service-b7fbb4c4c-8j9rl",
+                          "ins_type":  "DOTNET_CORE"
+                      },
+                      {
+                          "port":  8084,
+                          "instance_id":  "607312000002121015",
+                          "application_name":  "ZylkerKart-PaymentService",
+                          "application_id":  "607312000002121003",
+                          "instance_name":  "Instance_1",
+                          "host":  "payment-service-6684df8f78-6twd2",
+                          "ins_type":  "PYTHON"
+                      }
                   ]
 }

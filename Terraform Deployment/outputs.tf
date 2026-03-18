@@ -115,3 +115,16 @@ output "total_skipped_apps" {
   sensitive = true
 
 }
+
+# ── Site24x7 Monitor Group ──
+output "monitor_group_name" {
+  description = "Site24x7 Monitor Group display name for ZylkerKart APM applications"
+  value       = local.enable_apm ? local.mg_display_name : null
+  sensitive   = true
+}
+
+output "monitor_group_monitors" {
+  description = "APM application IDs included in the monitor group"
+  value       = local.enable_apm ? local.apm_application_ids : []
+  sensitive   = true
+}

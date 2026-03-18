@@ -51,14 +51,14 @@ provider "aws" {
 provider "kubernetes" {
   host = var.cloud_provider == "azure" ? (
     length(azurerm_kubernetes_cluster.aks) > 0 ? azurerm_kubernetes_cluster.aks[0].kube_config[0].host : ""
-  ) : (
+    ) : (
     length(aws_eks_cluster.eks) > 0 ? aws_eks_cluster.eks[0].endpoint : ""
   )
 
   cluster_ca_certificate = base64decode(
     var.cloud_provider == "azure" ? (
       length(azurerm_kubernetes_cluster.aks) > 0 ? azurerm_kubernetes_cluster.aks[0].kube_config[0].cluster_ca_certificate : ""
-    ) : (
+      ) : (
       length(aws_eks_cluster.eks) > 0 ? aws_eks_cluster.eks[0].certificate_authority[0].data : ""
     )
   )
@@ -87,14 +87,14 @@ provider "helm" {
   kubernetes {
     host = var.cloud_provider == "azure" ? (
       length(azurerm_kubernetes_cluster.aks) > 0 ? azurerm_kubernetes_cluster.aks[0].kube_config[0].host : ""
-    ) : (
+      ) : (
       length(aws_eks_cluster.eks) > 0 ? aws_eks_cluster.eks[0].endpoint : ""
     )
 
     cluster_ca_certificate = base64decode(
       var.cloud_provider == "azure" ? (
         length(azurerm_kubernetes_cluster.aks) > 0 ? azurerm_kubernetes_cluster.aks[0].kube_config[0].cluster_ca_certificate : ""
-      ) : (
+        ) : (
         length(aws_eks_cluster.eks) > 0 ? aws_eks_cluster.eks[0].certificate_authority[0].data : ""
       )
     )
