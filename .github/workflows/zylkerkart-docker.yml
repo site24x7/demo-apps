@@ -14,6 +14,8 @@
 # Required secrets:
 #   - DOCKERHUB_USERNAME  — Docker Hub username
 #   - DOCKERHUB_TOKEN     — Docker Hub access token
+#   - GH_PKG_TOKEN        — Classic PAT with read:packages scope (for cross-repo
+#                           access to site24x7/observe-labs Maven/Go packages)
 # =============================================================================
 
 name: "ZylkerKart: Docker Build & Push"
@@ -115,7 +117,7 @@ jobs:
           push: true
           tags: impazhani/${{ matrix.service }}:latest
           build-args: |
-            ${{ matrix.needs_github_token && format('GITHUB_TOKEN={0}', secrets.GITHUB_TOKEN) || '' }}
+            ${{ matrix.needs_github_token && format('GITHUB_TOKEN={0}', secrets.GH_PKG_TOKEN) || '' }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,scope=${{ matrix.service }},mode=max
 
