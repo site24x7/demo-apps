@@ -3,7 +3,6 @@ FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 COPY AuthService.csproj ./
-COPY chaos-sdk/ ./chaos-sdk/
 RUN dotnet restore
 
 # Copy app source files only (not chaos-sdk again — already restored above)

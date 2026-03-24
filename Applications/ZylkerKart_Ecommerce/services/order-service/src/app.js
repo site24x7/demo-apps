@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 8082;
   // SDK is ESM, so we use dynamic import() from CJS.
   // Registering BEFORE routes ensures the middleware intercepts requests.
   try {
-    const { initChaos } = await import('@site24x7-labs/chaos-sdk');
+    const { initChaos } = await import('site24x7-chaos-sdk');
     initChaos(app, {
       appName: process.env.CHAOS_SDK_APP_NAME || 'order-service',
       configDir: process.env.CHAOS_SDK_CONFIG_DIR || '/var/site24x7-labs/faults',
