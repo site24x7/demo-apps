@@ -26,11 +26,12 @@ on:
   workflow_dispatch:
     inputs:
       service:
-        description: "Service to build (leave empty for all)"
-        required: false
+        description: "Service to build (all = build everything)"
+        required: true
+        default: all
         type: choice
         options:
-          - ""
+          - all
           - storefront
           - product-service
           - order-service
@@ -55,7 +56,7 @@ jobs:
     if: >-
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' &&
-       (inputs.service == '' || inputs.service == matrix.service))
+       (inputs.service == 'all' || inputs.service == matrix.service))
 
     strategy:
       fail-fast: false
@@ -116,7 +117,7 @@ jobs:
     if: >-
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' &&
-       (inputs.service == '' || inputs.service == 'auth-service'))
+       (inputs.service == 'all' || inputs.service == 'auth-service'))
 
     steps:
       - name: Checkout
