@@ -8,9 +8,9 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	chaos "github.com/pazhanir/site24x7-labs/sdks/go"
-	"github.com/pazhanir/site24x7-labs/sdks/go/fault"
-	ginmw "github.com/pazhanir/site24x7-labs/sdks/go/gin"
+	chaos "github.com/site24x7/observe-labs/sdks/go"
+	"github.com/site24x7/observe-labs/sdks/go/fault"
+	ginmw "github.com/site24x7/observe-labs/sdks/go/gin"
 
 	"zylkerkart/search-service/config"
 	"zylkerkart/search-service/handlers"

@@ -1,0 +1,156 @@
+# =============================================================================
+# ZylkerKart — Docker Image Build & Push
+# =============================================================================
+# Builds multi-arch Docker images for all 6 ZylkerKart microservices
+# and pushes them to Docker Hub.
+#
+# Trigger: Push to main when files under ZylkerKart services change,
+#          or manual dispatch.
+#
+# Architecture:
+#   - 5 services: linux/amd64 + linux/arm64 (multi-arch)
+#   - auth-service: linux/amd64 only (.NET Dockerfile is x86-hardcoded)
+#
+# Required secrets:
+#   - DOCKERHUB_USERNAME  — Docker Hub username
+#   - DOCKERHUB_TOKEN     — Docker Hub access token
+# =============================================================================
+
+name: "ZylkerKart: Docker Build & Push"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Applications/ZylkerKart_Ecommerce/services/**"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build (all = build everything)"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - storefront
+          - product-service
+          - order-service
+          - search-service
+          - payment-service
+          - auth-service
+
+env:
+  SERVICES_ROOT: Applications/ZylkerKart_Ecommerce/services
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build Matrix — Multi-arch services
+  # ---------------------------------------------------------------------------
+  build-multiarch:
+    name: "${{ matrix.service }} (multi-arch)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: storefront
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: true
+          - service: product-service
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: true
+          - service: order-service
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: false
+          - service: search-service
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: true
+          - service: payment-service
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: false
+
+    steps:
+      - name: Check if service should build
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || \
+             [[ "${{ inputs.service }}" == "all" ]] || \
+             [[ "${{ inputs.service }}" == "${{ matrix.service }}" ]]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.SERVICES_ROOT }}/${{ matrix.service }}
+          file: ${{ env.SERVICES_ROOT }}/${{ matrix.service }}/Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: impazhani/${{ matrix.service }}:latest
+          build-args: |
+            ${{ matrix.needs_github_token && format('GITHUB_TOKEN={0}', secrets.GITHUB_TOKEN) || '' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+
+  # ---------------------------------------------------------------------------
+  # Build — auth-service (x86 only)
+  # ---------------------------------------------------------------------------
+  build-auth-service:
+    name: "auth-service (amd64)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.service == 'all' || inputs.service == 'auth-service'))
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.SERVICES_ROOT }}/auth-service
+          file: ${{ env.SERVICES_ROOT }}/auth-service/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: impazhani/auth-service:latest
+          cache-from: type=gha,scope=auth-service
+          cache-to: type=gha,scope=auth-service,mode=max

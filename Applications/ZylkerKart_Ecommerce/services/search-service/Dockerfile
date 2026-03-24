@@ -1,13 +1,18 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
+ARG GITHUB_TOKEN
+
 WORKDIR /app
 
 # Install git for module downloads
 RUN apk add --no-cache git
 
-# Copy Chaos SDK source (local dependency, not published to Go proxy)
-COPY chaos-sdk/ ./chaos-sdk/
+# Configure git to use token for private GitHub repos
+RUN git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+
+# Set GOPRIVATE so Go doesn't try the public proxy for our modules
+ENV GOPRIVATE=github.com/site24x7/*
 
 # Copy all source code
 COPY . .
