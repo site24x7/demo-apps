@@ -20,9 +20,8 @@ FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/aspnet:8.0
 
 WORKDIR /app
 
-# Add non-root user and install curl for healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r appgroup && useradd -r -g appgroup appuser
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
 
@@ -31,8 +30,6 @@ ENV PORT=8085
 ENV CHAOS_SDK_ENABLED=true
 ENV CHAOS_SDK_APP_NAME=auth-service
 ENV CHAOS_SDK_CONFIG_DIR=/var/site24x7-labs/faults
-
-USER appuser
 
 EXPOSE 8085
 
