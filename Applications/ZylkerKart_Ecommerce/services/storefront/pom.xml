@@ -57,7 +57,7 @@
         <dependency>
             <groupId>com.site24x7.labs</groupId>
             <artifactId>chaos-sdk-spring-boot-3</artifactId>
-            <version>1.1.0</version>
+            <version>1.1.2</version>
         </dependency>
     </dependencies>
 
