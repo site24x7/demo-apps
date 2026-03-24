@@ -12,8 +12,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 
-	chaos "github.com/pazhanir/site24x7-labs/sdks/go"
-	"github.com/pazhanir/site24x7-labs/sdks/go/fault"
+	chaos "github.com/site24x7/observe-labs/sdks/go"
+	"github.com/site24x7/observe-labs/sdks/go/fault"
 )
 
 var DB *sql.DB
