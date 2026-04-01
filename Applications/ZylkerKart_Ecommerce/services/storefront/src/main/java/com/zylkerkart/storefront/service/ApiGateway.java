@@ -1,5 +1,7 @@
 package com.zylkerkart.storefront.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.util.Map;
  */
 @Service
 public class ApiGateway {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiGateway.class);
 
     private final RestTemplate restTemplate;
     private final Map<String, String> serviceUrls;
@@ -54,6 +58,7 @@ public class ApiGateway {
             result.put("data", response.getBody());
             return result;
         } catch (RestClientException e) {
+            log.error("GET {}{} failed — service '{}' unavailable: {}", serviceUrls.get(service), path, service, e.getMessage());
             Map<String, Object> result = new HashMap<>();
             result.put("status", 503);
             Map<String, String> errorData = new HashMap<>();
@@ -90,6 +95,7 @@ public class ApiGateway {
             result.put("data", response.getBody());
             return result;
         } catch (RestClientException e) {
+            log.error("POST {}{} failed — service '{}' unavailable: {}", serviceUrls.get(service), path, service, e.getMessage());
             Map<String, Object> result = new HashMap<>();
             result.put("status", 503);
             Map<String, String> errorData = new HashMap<>();
@@ -122,6 +128,7 @@ public class ApiGateway {
             result.put("data", response.getBody());
             return result;
         } catch (RestClientException e) {
+            log.error("PUT {}{} failed — service '{}' unavailable: {}", serviceUrls.get(service), path, service, e.getMessage());
             Map<String, Object> result = new HashMap<>();
             result.put("status", 503);
             Map<String, String> errorData = new HashMap<>();
@@ -149,6 +156,7 @@ public class ApiGateway {
             result.put("data", response.getBody());
             return result;
         } catch (RestClientException e) {
+            log.error("DELETE {}{} failed — service '{}' unavailable: {}", serviceUrls.get(service), path, service, e.getMessage());
             Map<String, Object> result = new HashMap<>();
             result.put("status", 503);
             Map<String, String> errorData = new HashMap<>();

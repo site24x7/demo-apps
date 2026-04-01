@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zylkerkart-ingress
+  namespace: zylkerkart
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "150m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # ALL traffic goes through storefront (BFF pattern).
+      # Storefront handles all /api/* routes internally and proxies to backends
+      # over cluster-internal DNS. Do NOT add separate /api/* routes here —
+      # backend services have no /api/ prefix and will 404.
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: storefront
+            port:
+              number: 80

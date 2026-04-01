@@ -1,6 +1,7 @@
 package com.zylkerkart.storefront.controller;
 
 import com.zylkerkart.storefront.service.ApiGateway;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class HomeController {
      * Landing page — Featured products + categories + more products.
      */
     @GetMapping("/")
-    public String index(Model model, HttpSession session) {
+    public String index(Model model, HttpSession session, HttpServletResponse response) {
         // Use current date+hour as seed so "Top Products" rotates every hour
         String hourKey = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"));
         CRC32 crc = new CRC32();
@@ -46,6 +47,8 @@ public class HomeController {
         Map<String, Object> categories = api.get("product", "/products/categories");
         Map<String, Object> moreProducts = api.get("product", "/products",
                 Map.of("size", "10", "page", String.valueOf(morePage)));
+
+        setResponseStatus(response, products, categories, moreProducts);
 
         model.addAttribute("products", getList(products, "products"));
         model.addAttribute("moreProducts", getList(moreProducts, "products"));
@@ -65,7 +68,7 @@ public class HomeController {
             @RequestParam(defaultValue = "") String category,
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "") String sort,
-            Model model, HttpSession session) {
+            Model model, HttpSession session, HttpServletResponse response) {
 
         Map<String, String> query = new LinkedHashMap<>();
         query.put("page", page);
@@ -76,6 +79,8 @@ public class HomeController {
 
         Map<String, Object> products = api.get("product", "/products", query);
         Map<String, Object> categories = api.get("product", "/products/categories");
+
+        setResponseStatus(response, products, categories);
 
         Map<String, String> filters = Map.of(
                 "page", page, "size", size,
@@ -103,11 +108,13 @@ public class HomeController {
      * Single product detail page.
      */
     @GetMapping("/products/{id}")
-    public String productDetail(@PathVariable long id, Model model, HttpSession session) {
+    public String productDetail(@PathVariable long id, Model model, HttpSession session, HttpServletResponse response) {
         Map<String, Object> product = api.get("product", "/products/" + id);
 
         if (safeInt(product, "status", 0) != 200) {
-            // 404 page uses the layout decorator, so it needs all layout model attributes
+            // Set actual HTTP status — 503 if service down, 404 if not found
+            int upstreamStatus = safeInt(product, "status", 503);
+            response.setStatus(upstreamStatus == 503 ? 503 : 404);
             model.addAttribute("categories", List.of());
             addSessionAttributes(model, session);
             return "error/404";
@@ -128,9 +135,11 @@ public class HomeController {
      * Cart page.
      */
     @GetMapping("/cart")
-    public String cart(Model model, HttpSession session) {
+    public String cart(Model model, HttpSession session, HttpServletResponse response) {
         String sessionId = session.getId();
         Map<String, Object> cart = api.get("order", "/cart/" + sessionId);
+
+        setResponseStatus(response, cart);
 
         model.addAttribute("cart", getDataMap(cart));
         model.addAttribute("title", "Cart - ZylkerKart");
@@ -142,7 +151,7 @@ public class HomeController {
      * Checkout page.
      */
     @GetMapping("/checkout")
-    public String checkout(Model model, HttpSession session) {
+    public String checkout(Model model, HttpSession session, HttpServletResponse response) {
         if (session.getAttribute("auth_token") == null) {
             session.setAttribute("redirect", "/checkout");
             return "redirect:/login";
@@ -150,6 +159,8 @@ public class HomeController {
 
         String sessionId = session.getId();
         Map<String, Object> cart = api.get("order", "/cart/" + sessionId);
+
+        setResponseStatus(response, cart);
 
         model.addAttribute("cart", getDataMap(cart));
         model.addAttribute("title", "Checkout - ZylkerKart");
@@ -256,9 +267,13 @@ public class HomeController {
             HttpSession session) {
         String sid = (sessionId != null && !sessionId.isEmpty()) ? sessionId : session.getId();
         Map<String, Object> result = api.get("order", "/cart/" + sid);
+        int status = safeInt(result, "status", 503);
         Map<String, Object> data = safeMap(result.get("data"));
-        int itemCount = data != null ? safeInt(data, "itemCount", 0) : 0;
-        return ResponseEntity.ok(Map.of("itemCount", itemCount));
+        if (status >= 200 && status < 300) {
+            int itemCount = data != null ? safeInt(data, "itemCount", 0) : 0;
+            return ResponseEntity.ok(Map.of("itemCount", itemCount));
+        }
+        return ResponseEntity.status(status).body(Map.of("itemCount", 0, "error", "Service unavailable"));
     }
 
     @PutMapping(value = "/api/cart/item", produces = "application/json")
@@ -335,6 +350,11 @@ public class HomeController {
 
         Map<String, Object> result = api.get("order", "/orders/user/" + userId,
                 null, token);
+        int orderStatus = safeInt(result, "status", 503);
+        if (orderStatus < 200 || orderStatus >= 300) {
+            return ResponseEntity.status(orderStatus)
+                    .body(Map.of("error", "Order service unavailable", "orders", List.of()));
+        }
         Object data = result.get("data");
 
         @SuppressWarnings("unchecked")
@@ -440,6 +460,21 @@ public class HomeController {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Check if any backend API call returned an error and set the HTTP response status accordingly.
+     * The page still renders (with empty data), but the HTTP status code reflects the actual failure.
+     */
+    @SafeVarargs
+    private final void setResponseStatus(HttpServletResponse response, Map<String, Object>... results) {
+        for (Map<String, Object> result : results) {
+            int status = safeInt(result, "status", 0);
+            if (status < 200 || status >= 300) {
+                response.setStatus(status > 0 ? status : 503);
+                return;
+            }
+        }
+    }
 
     private void addSessionAttributes(Model model, HttpSession session) {
         model.addAttribute("sessionId", session.getId());
