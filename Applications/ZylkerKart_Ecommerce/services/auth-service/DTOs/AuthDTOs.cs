@@ -43,3 +43,12 @@ public class ValidateResponse
     public UserDto? User { get; set; }
     public string? Message { get; set; }
 }
+
+public class ActivityLogRequest
+{
+    public int UserId { get; set; }
+    public int? OrderId { get; set; }
+    public string? TransactionId { get; set; }
+    public string ActivityType { get; set; } = string.Empty;
+    public object? Metadata { get; set; }
+}
