@@ -1,0 +1,56 @@
+# Strategic merge patches to apply after initial deployment.
+# These increase resource limits for services that were OOMKilling under load,
+# and tune the liveness probe to survive transient Tomcat thread saturation.
+#
+# Apply with:
+#   kubectl -n zylkerkart patch deployment storefront --patch-file=k8s/deployments-patch.yaml
+#
+# Or apply both at once:
+#   kubectl -n zylkerkart patch deployment storefront   -p "$(cat k8s/deployments-patch.yaml | python3 -c 'import sys,yaml,json; docs=list(yaml.safe_load_all(sys.stdin)); [print(json.dumps(d)) for d in docs if d[\"metadata\"][\"name\"]==\"storefront\"]')"
+#   kubectl -n zylkerkart patch deployment auth-service -p "$(cat k8s/deployments-patch.yaml | python3 -c 'import sys,yaml,json; docs=list(yaml.safe_load_all(sys.stdin)); [print(json.dumps(d)) for d in docs if d[\"metadata\"][\"name\"]==\"auth-service\"]')"
+---
+# storefront: increased from cpu:400m/mem:512Mi to cpu:1/mem:1Gi (was OOMKilling under load)
+# livenessProbe: timeout=10s, failureThreshold=5 (survives up to 100s of thread saturation before restart)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+  namespace: zylkerkart
+spec:
+  template:
+    spec:
+      containers:
+      - name: storefront
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 5
+---
+# auth-service: increased from cpu:300m/mem:512Mi to cpu:1/mem:1Gi (was OOMKilling under load)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: zylkerkart
+spec:
+  template:
+    spec:
+      containers:
+      - name: auth-service
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
