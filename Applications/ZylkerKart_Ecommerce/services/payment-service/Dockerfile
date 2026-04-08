@@ -11,6 +11,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install procps (provides pkill/pgrep/ps) for chaos tooling
+RUN apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/*
+
 # Add non-root user
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
