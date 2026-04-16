@@ -19,5 +19,6 @@ node_count         = 3
 docker_registry      = "zylkerkart"
 image_tag            = "latest"
 site24x7_license_key = ""   # Set to enable APM
+site24x7_datacenter  = "eu" # com, eu, cn, in, com.au
 mysql_root_password  = "ZylkerKart@2024"
 jwt_secret           = "ZylkerKart-Super-Secret-JWT-Key-2024-Must-Be-At-Least-32-Chars"

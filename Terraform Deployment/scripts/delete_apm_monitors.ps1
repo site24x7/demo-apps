@@ -3,7 +3,16 @@ param(
     [string]$InputFile,
 
     [Parameter(Mandatory=$false)]
-    [string]$AppNamePrefix = "ZylkerKart"
+    [string]$AppNamePrefix = "ZylkerKart",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ClusterName = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ZohoAccountsBase = "https://accounts.zoho.com",
+
+    [Parameter(Mandatory=$false)]
+    [string]$Site24x7ApiBase = "https://www.site24x7.com"
 )
 
 # 1. Check if stored file exists
@@ -16,18 +25,28 @@ if (-not (Test-Path $InputFile)) {
 # 2. Read stored data
 $storedData = Get-Content -Path $InputFile -Raw | ConvertFrom-Json
 
-if ($storedData.applications.Count -eq 0) {
-    Write-Host "No APM applications stored. Nothing to delete." -ForegroundColor Yellow
+# Override base URLs from state file if present (written by fetch_and_store_apm.ps1)
+if ($storedData.zoho_accounts_base) { $ZohoAccountsBase = $storedData.zoho_accounts_base }
+if ($storedData.site24x7_api_base)  { $Site24x7ApiBase  = $storedData.site24x7_api_base }
+
+$k8sClusters = @()
+if ($storedData.kubernetes_clusters) {
+    $k8sClusters = @($storedData.kubernetes_clusters)
+}
+
+if ($storedData.applications.Count -eq 0 -and $k8sClusters.Count -eq 0) {
+    Write-Host "No APM applications or K8s clusters stored. Nothing to delete." -ForegroundColor Yellow
     exit 0
 }
 
 Write-Host "=======================================" -ForegroundColor White
-Write-Host " APM Monitor Cleanup" -ForegroundColor White
+Write-Host " APM & Kubernetes Monitor Cleanup" -ForegroundColor White
 Write-Host "=======================================" -ForegroundColor White
 Write-Host "  Filter:      $($storedData.filter)*" -ForegroundColor Cyan
 Write-Host "  Captured at: $($storedData.captured_at)" -ForegroundColor Cyan
 Write-Host "  Apps:        $($storedData.applications.Count)" -ForegroundColor Cyan
 Write-Host "  Instances:   $($storedData.instances.Count)" -ForegroundColor Cyan
+Write-Host "  K8s Clusters: $($k8sClusters.Count)" -ForegroundColor Cyan
 Write-Host ""
 
 # 3. Double-check: only delete apps matching the prefix
@@ -47,16 +66,21 @@ if ($appsSkipped.Count -gt 0) {
     Write-Host ""
 }
 
-if ($appsToDelete.Count -eq 0) {
-    Write-Host "No apps match prefix. Nothing to delete." -ForegroundColor Yellow
+if ($appsToDelete.Count -eq 0 -and $k8sClusters.Count -eq 0) {
+    Write-Host "No apps match prefix and no K8s clusters. Nothing to delete." -ForegroundColor Yellow
     exit 0
 }
 
-Write-Host "Deleting $($appsToDelete.Count) apps matching: $AppNamePrefix*" -ForegroundColor Cyan
-foreach ($app in $appsToDelete) {
-    Write-Host "  > $($app.application_name) (ID: $($app.application_id))" -ForegroundColor White
+if ($appsToDelete.Count -gt 0) {
+    Write-Host "Deleting $($appsToDelete.Count) apps matching: $AppNamePrefix*" -ForegroundColor Cyan
+    foreach ($app in $appsToDelete) {
+        Write-Host "  > $($app.application_name) (ID: $($app.application_id))" -ForegroundColor White
+    }
+    Write-Host ""
+} else {
+    Write-Host "No APM apps match prefix. Skipping APM deletion." -ForegroundColor DarkGray
+    Write-Host ""
 }
-Write-Host ""
 
 # 4. Refresh OAuth Token
 $tokenBody = @{
@@ -65,7 +89,7 @@ $tokenBody = @{
     client_secret = $env:SITE24X7_CLIENT_SECRET
     refresh_token = $env:SITE24X7_REFRESH_TOKEN
 }
-$tokenResponse = Invoke-RestMethod -Uri "https://accounts.zoho.com/oauth/v2/token" -Method POST -Body $tokenBody
+$tokenResponse = Invoke-RestMethod -Uri "$ZohoAccountsBase/oauth/v2/token" -Method POST -Body $tokenBody -TimeoutSec 30
 $accessToken   = $tokenResponse.access_token
 
 $headers = @{
@@ -85,9 +109,10 @@ foreach ($app in $appsToDelete) {
 
     try {
         $deleteResponse = Invoke-RestMethod `
-            -Uri "https://www.site24x7.com/api/monitors/$appId" `
+            -Uri "$Site24x7ApiBase/api/monitors/$appId" `
             -Method DELETE `
-            -Headers $headers
+            -Headers $headers `
+            -TimeoutSec 30
 
         if ($deleteResponse.code -eq 0) {
             Write-Host "  OK - Deleted successfully" -ForegroundColor Green
@@ -111,22 +136,88 @@ foreach ($app in $appsToDelete) {
     Start-Sleep -Milliseconds 500
 }
 
-# 6. Summary
+# 6. Delete Kubernetes Cluster Monitors
+$k8sSuccessCount = 0
+$k8sFailCount    = 0
+
+if ($k8sClusters.Count -gt 0) {
+    Write-Host ""
+    Write-Host "---------------------------------------" -ForegroundColor White
+    Write-Host " Kubernetes Cluster Monitor Cleanup" -ForegroundColor White
+    Write-Host "---------------------------------------" -ForegroundColor White
+    Write-Host "Deleting $($k8sClusters.Count) K8s cluster monitors..." -ForegroundColor Cyan
+
+    foreach ($cluster in $k8sClusters) {
+        $clusterId   = $cluster.cluster_id
+        $displayName = $cluster.display_name
+
+        Write-Host "[$displayName] (ID: $clusterId)" -ForegroundColor Yellow
+
+        try {
+            $deleteResponse = Invoke-RestMethod `
+                -Uri "$Site24x7ApiBase/app/api/monitors/${clusterId}?deleteIntegrartedMonitors=false" `
+                -Method DELETE `
+                -Headers $headers `
+                -TimeoutSec 30
+
+            if ($deleteResponse.code -eq 0) {
+                Write-Host "  OK - Deleted successfully" -ForegroundColor Green
+                $k8sSuccessCount++
+            } else {
+                Write-Host "  FAIL - $($deleteResponse.message)" -ForegroundColor Red
+                $k8sFailCount++
+            }
+        }
+        catch {
+            $statusCode = $_.Exception.Response.StatusCode.value__
+            if ($statusCode -eq 404) {
+                Write-Host "  SKIP - Already deleted (404)" -ForegroundColor DarkYellow
+                $k8sSuccessCount++
+            } else {
+                Write-Host "  ERROR - $_" -ForegroundColor Red
+                $k8sFailCount++
+            }
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+} else {
+    Write-Host ""
+    Write-Host "No K8s cluster monitors to delete." -ForegroundColor DarkGray
+}
+
+$totalSuccess = $successCount + $k8sSuccessCount
+$totalFail    = $failCount + $k8sFailCount
+
+# 7. Summary
 Write-Host ""
 Write-Host "=======================================" -ForegroundColor White
 Write-Host " Cleanup Summary" -ForegroundColor White
 Write-Host "=======================================" -ForegroundColor White
-Write-Host "  Filter:    $AppNamePrefix*" -ForegroundColor Cyan
-Write-Host "  Succeeded: $successCount" -ForegroundColor Green
+Write-Host "  APM Filter:    $AppNamePrefix*" -ForegroundColor Cyan
+Write-Host "  APM Succeeded: $successCount" -ForegroundColor Green
 if ($failCount -gt 0) {
-    Write-Host "  Failed:    $failCount" -ForegroundColor Red
+    Write-Host "  APM Failed:    $failCount" -ForegroundColor Red
 } else {
-    Write-Host "  Failed:    0" -ForegroundColor Green
+    Write-Host "  APM Failed:    0" -ForegroundColor Green
+}
+Write-Host "  K8s Succeeded: $k8sSuccessCount" -ForegroundColor Green
+if ($k8sFailCount -gt 0) {
+    Write-Host "  K8s Failed:    $k8sFailCount" -ForegroundColor Red
+} else {
+    Write-Host "  K8s Failed:    0" -ForegroundColor Green
+}
+Write-Host "  ---------------------" -ForegroundColor White
+Write-Host "  Total OK:      $totalSuccess" -ForegroundColor Green
+if ($totalFail -gt 0) {
+    Write-Host "  Total Failed:  $totalFail" -ForegroundColor Red
+} else {
+    Write-Host "  Total Failed:  0" -ForegroundColor Green
 }
 Write-Host ""
 
-# 7. Remove stored file on full success
-if ($failCount -eq 0) {
+# 8. Remove stored file on full success
+if ($totalFail -eq 0) {
     Remove-Item -Path $InputFile -Force
     Write-Host "Removed state file: $InputFile" -ForegroundColor Gray
 } else {

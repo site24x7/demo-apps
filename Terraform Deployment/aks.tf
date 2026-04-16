@@ -19,10 +19,10 @@ resource "azurerm_resource_group" "aks" {
 
 resource "azurerm_kubernetes_cluster" "aks" {
   count               = var.cloud_provider == "azure" ? 1 : 0
-  name                = var.cluster_name
+  name                = local.effective_cluster_name
   location            = azurerm_resource_group.aks[0].location
   resource_group_name = azurerm_resource_group.aks[0].name
-  dns_prefix          = var.cluster_name
+  dns_prefix          = local.effective_cluster_name
   kubernetes_version  = var.kubernetes_version
 
   default_node_pool {

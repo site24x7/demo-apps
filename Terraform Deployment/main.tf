@@ -33,10 +33,23 @@ terraform {
       source  = "hashicorp/external"
       version = "~> 2.0"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
   }
 }
 
 # ── Azure Provider ──
+# All Azure resources (aks.tf) are gated with count = var.cloud_provider == "azure" ? 1 : 0
+# so no Azure API calls are ever made during an AWS deployment. However Terraform still
+# configures every declared provider at init/plan time. The settings below prevent the
+# provider from attempting any authentication method and avoid the network round-trip to
+# login.microsoftonline.com that causes plan failures when Azure credentials are absent.
+#
+# IMPORTANT: When cloud_provider = "azure", set real values via ARM_* env vars:
+#   ARM_SUBSCRIPTION_ID, ARM_TENANT_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET
+#   (env vars override these placeholder values at runtime)
 provider "azurerm" {
   features {}
   skip_provider_registration = true
@@ -78,7 +91,7 @@ provider "kubernetes" {
     content {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
+      args        = ["eks", "get-token", "--cluster-name", local.effective_cluster_name]
     }
   }
 }
@@ -112,7 +125,7 @@ provider "helm" {
       content {
         api_version = "client.authentication.k8s.io/v1beta1"
         command     = "aws"
-        args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
+        args        = ["eks", "get-token", "--cluster-name", local.effective_cluster_name]
       }
     }
   }
