@@ -75,25 +75,13 @@ jobs:
       - name: Configure Maven for GitHub Packages
         run: |
           mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml << 'SETTINGS'
-          <settings>
-            <servers>
-              <server>
-                <id>github-site24x7</id>
-                <username>github-actions</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-            </servers>
-          </settings>
-          SETTINGS
+          printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>token</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>' "$GITHUB_TOKEN" > ~/.m2/settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Build JAR
         run: mvn package -DskipTests -B -q
         working-directory: ${{ env.APP_ROOT }}/services/storefront
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Package tarball
         run: |
@@ -156,25 +144,13 @@ jobs:
       - name: Configure Maven for GitHub Packages
         run: |
           mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml << 'SETTINGS'
-          <settings>
-            <servers>
-              <server>
-                <id>github-site24x7</id>
-                <username>github-actions</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-            </servers>
-          </settings>
-          SETTINGS
+          printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>token</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>' "$GITHUB_TOKEN" > ~/.m2/settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Build JAR
         run: mvn package -DskipTests -B -q
         working-directory: ${{ env.APP_ROOT }}/services/product-service
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Package tarball
         run: |
