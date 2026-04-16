@@ -1,0 +1,44 @@
+# =============================================================================
+# ZylkerKart Product Service — Java 17 / Spring Boot
+# Port: 8081
+# Prerequisites: Eclipse Temurin JRE 17+
+# =============================================================================
+
+[Unit]
+Description=ZylkerKart Product Service (Spring Boot)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zylkerkart
+Group=zylkerkart
+
+WorkingDirectory=/opt/zylkerkart/product-service
+EnvironmentFile=/etc/zylkerkart/product-service.env
+
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /opt/zylkerkart/product-service/app.jar
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zylkerkart/product-service /var/site24x7-labs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-product-service
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

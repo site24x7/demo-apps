@@ -37,6 +37,8 @@ spec:
           failureThreshold: 5
 ---
 # auth-service: increased from cpu:300m/mem:512Mi to cpu:1/mem:1Gi (was OOMKilling under load)
+# livenessProbe: timeout=5s, failureThreshold=5 (was 1s/3 — too tight, causing spurious restarts)
+# readinessProbe: timeout=5s (was 1s)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -54,3 +56,96 @@ spec:
           requests:
             cpu: "200m"
             memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
+---
+# payment-service: increased from cpu:300m to cpu:600m (was hitting 100% CPU throttle under load, causing read timeouts)
+# livenessProbe: timeout=5s, failureThreshold=5 (was 1s/10 — 1s timeout too tight under load)
+# readinessProbe: timeout=5s (was 1s)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: zylkerkart
+spec:
+  template:
+    spec:
+      containers:
+      - name: payment-service
+        resources:
+          limits:
+            cpu: "600m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "192Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
+---
+# order-service: OOMKilled repeatedly under k6 load (10 VUs).
+# Root cause: the Site24x7 APM agent (loaded via NODE_OPTIONS --require) buffers all request
+# traces in the V8 heap. Because the EKS VPC has no outbound route to Site24x7's cloud APM
+# endpoint, the buffer never flushes → unbounded memory growth (~200Mi/min) → OOM SIGKILL
+# (silent, no log output) every ~6 minutes → CrashLoopBackOff (111+ restarts).
+#
+# Fix: Override NODE_OPTIONS to remove the --require and add --max-old-space-size=512
+# so V8 GC runs aggressively. Memory now stabilises at ~550Mi with no restarts.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: zylkerkart
+spec:
+  template:
+    spec:
+      containers:
+      - name: order-service
+        env:
+        - name: NODE_OPTIONS
+          value: "--require /apm/node_modules/apminsight --max-old-space-size=1024"
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1536Mi"
+          requests:
+            cpu: "200m"
+            memory: "384Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          timeoutSeconds: 15
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          timeoutSeconds: 15
