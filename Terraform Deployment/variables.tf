@@ -11,16 +11,38 @@ variable "cloud_provider" {
   }
 }
 
+variable "deployment_id" {
+  description = "Unique deployment identifier"
+  type        = string
+}
+
+variable "customer_name" {
+  description = "Customer name"
+  type        = string
+}
+
+variable "region" {
+  description = "Deployment region (used by orchestrator)"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "instance_size" {
+  description = "Instance size (used by orchestrator)"
+  type        = string
+  default     = "medium"
+}
+
 variable "cluster_name" {
   description = "Name of the Kubernetes cluster"
   type        = string
-  default     = "zylkerkart-cluster"
+  default     = "AIOps-cluster"
 }
 
 variable "ticket_id" {
   description = "Ticket ID to append to cluster name and APM application names for unique identification"
   type        = string
-  default     = ""
+  default     = "AIOps"
 }
 
 variable "kubernetes_version" {
@@ -32,7 +54,7 @@ variable "kubernetes_version" {
 variable "node_count" {
   description = "Number of worker nodes"
   type        = number
-  default     = 3
+  default     = 2
 }
 
 # ── Azure-specific ──
@@ -71,7 +93,7 @@ variable "aws_subnet_cidrs" {
 variable "docker_registry" {
   description = "Docker registry prefix for ZylkerKart images"
   type        = string
-  default     = "zylkerkart"
+  default     = ""
 }
 
 variable "image_tag" {
@@ -104,10 +126,14 @@ variable "jwt_secret" {
 # ── Computed locals ──
 locals {
   enable_apm             = var.site24x7_license_key != ""
-  node_size              = var.cloud_provider == "azure" ? "Standard_D4s_v3" : "t3.xlarge"
+  node_size              = var.cloud_provider == "azure" ? "Standard_D4s_v3" : "t2.medium"
   storage_class          = var.cloud_provider == "azure" ? "default" : "gp2"
   ticket_suffix          = var.ticket_id != "" ? "-${var.ticket_id}" : ""
   effective_cluster_name = "${var.cluster_name}${local.ticket_suffix}"
+
+  # ── Site24x7 datacenter-aware base URLs ──
+  site24x7_api_base  = "https://www.site24x7.${var.site24x7_datacenter}"
+  zoho_accounts_base = var.site24x7_datacenter == "cn" ? "https://accounts.zoho.com.cn" : "https://accounts.zoho.${var.site24x7_datacenter}"
 }
 
 variable "apm_app_name_prefix" {
@@ -148,7 +174,7 @@ variable "site24x7_namespace" {
 variable "site24x7_image" {
   description = "Agent Docker image"
   type        = string
-  default     = "impazhani/site24x7-labs-agent:v2-chaospage"
+  default     = "impazhani/site24x7-labs-agent:latest"
 }
 
 variable "site24x7_agent_name" {
@@ -173,5 +199,23 @@ variable "site24x7_admin_password" {
 variable "site24x7_environment_name" {
   description = "Environment name to create/find in Site24x7 Labs"
   type        = string
-  default     = "zylkerkart"
+  default     = "zylkerkart-AIOps"
+}
+
+# ── Site24x7 Dashboard ──
+variable "site24x7_dashboard_theme" {
+  description = "Theme id for the Site24x7 dashboard (controls light/dark rendering)"
+  type        = number
+  default     = 1
+}
+
+# ── Site24x7 Datacenter ──
+variable "site24x7_datacenter" {
+  description = "Site24x7 datacenter for API endpoints: com, eu, cn, in, com.au"
+  type        = string
+  default     = "com"
+  validation {
+    condition     = contains(["com", "eu", "cn", "in", "com.au"], var.site24x7_datacenter)
+    error_message = "site24x7_datacenter must be one of: com, eu, cn, in, com.au"
+  }
 }

@@ -31,12 +31,18 @@ resource "terraform_data" "zylkerkart_monitor_group" {
     local.mg_display_name,
   ]
 
-  depends_on = [terraform_data.apm_state_refresh]
+  depends_on = [
+    terraform_data.apm_state_refresh,
+    # Destroy ordering: monitor group cleanup destroys before chaos agent K8s resources
+    kubernetes_daemon_set_v1.site24x7_agent,
+  ]
 
   input = {
-    group_name  = local.mg_display_name
-    monitor_ids = local.mg_monitor_ids_csv
-    output_file = local.mg_output_file
+    group_name         = local.mg_display_name
+    monitor_ids        = local.mg_monitor_ids_csv
+    output_file        = local.mg_output_file
+    zoho_accounts_base = local.zoho_accounts_base
+    site24x7_api_base  = local.site24x7_api_base
   }
 
   provisioner "local-exec" {
@@ -46,7 +52,9 @@ resource "terraform_data" "zylkerkart_monitor_group" {
       & "${abspath(path.module)}/scripts/create_monitor_group.ps1" `
         -GroupName "${local.mg_display_name}" `
         -MonitorIds "${local.mg_monitor_ids_csv}" `
-        -OutputFile "${local.mg_output_file}"
+        -OutputFile "${local.mg_output_file}" `
+        -ZohoAccountsBase "${local.zoho_accounts_base}" `
+        -Site24x7ApiBase "${local.site24x7_api_base}"
     EOT
   }
 }

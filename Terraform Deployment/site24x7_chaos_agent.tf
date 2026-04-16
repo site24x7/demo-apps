@@ -4,35 +4,48 @@
 
 locals {
   # --- Log file so we can see output even when Terraform suppresses it ---
-  setup_log_file = "${path.module}/.site24x7_env_setup.log"
+  setup_log_file = "${abspath(path.module)}/.site24x7_env_setup.log"
 
   # --- Output file for env setup results ---
-  env_output_file = "${path.module}/.site24x7_env_output.json"
+  env_output_file = "${abspath(path.module)}/.site24x7_env_output.json"
 
   # --- Kubeconfig context command per cloud provider ---
   kubeconfig_command = var.cloud_provider == "azure" ? join(" ", [
     "az", "aks", "get-credentials",
     "--resource-group", var.azure_resource_group_name,
-    "--name", var.cluster_name,
+    "--name", local.effective_cluster_name,
     "--overwrite-existing"
     ]) : join(" ", [
     "aws", "eks", "update-kubeconfig",
     "--region", var.aws_region,
-    "--name", var.cluster_name
+    "--name", local.effective_cluster_name
   ])
 }
 
 # =============================================================================
 # Step 1 — Setup environment & obtain token + environment ID
 #           (PowerShell only — no Kubernetes resources here)
+#
+#   count gated by fileexists(): only runs when the output JSON file does NOT
+#   exist on disk.  When a previous run already created the file, count = 0
+#   skips this resource entirely, and the existing file is used as-is.
+#
+#   To force re-creation (e.g. after the remote environment was deleted),
+#   delete .site24x7_env_output.json and re-run terraform apply.
 # =============================================================================
 
 resource "terraform_data" "site24x7_env_setup" {
   depends_on = [terraform_data.k8s_ready]
 
+  # Only run when the output file from a previous setup does not yet exist.
+  # fileexists() is evaluated at plan time, avoiding the "count depends on
+  # resource attributes that cannot be determined until apply" error that
+  # occurred with the previous data.external approach.
+  count = fileexists(local.env_output_file) ? 0 : 1
+
   input = {
     server           = var.site24x7_server
-    environment_name = var.site24x7_environment_name
+    environment_name = "${var.site24x7_environment_name}${local.ticket_suffix}"
     admin_email      = var.site24x7_admin_email
     admin_password   = var.site24x7_admin_password
     namespace        = var.site24x7_namespace
@@ -77,7 +90,7 @@ resource "terraform_data" "site24x7_env_setup" {
       # ── Step 3: Login to Site24x7 Labs API ──
       Log "Step 3 — Logging in to Site24x7 Labs..."
       Log "  Server:          ${var.site24x7_server}"
-      Log "  EnvironmentName: ${var.site24x7_environment_name}"
+      Log "  EnvironmentName: ${var.site24x7_environment_name}${local.ticket_suffix}"
       Log "  Namespace:       ${var.site24x7_namespace}"
       Log "  AdminEmail:      ${var.site24x7_admin_email}"
 
@@ -121,9 +134,9 @@ resource "terraform_data" "site24x7_env_setup" {
       Log "  Login successful, JWT obtained."
 
       # ── Step 4: Create or find environment ──
-      Log "Step 4 — Creating/finding environment '${var.site24x7_environment_name}'..."
+      Log "Step 4 — Creating/finding environment '${var.site24x7_environment_name}${local.ticket_suffix}'..."
       $headers = @{ "Authorization" = "Bearer $jwt"; "Content-Type" = "application/json" }
-      $envBody = @{ name = "${var.site24x7_environment_name}"; type = "kubernetes" } | ConvertTo-Json
+      $envBody = @{ name = "${var.site24x7_environment_name}${local.ticket_suffix}"; type = "kubernetes" } | ConvertTo-Json
       $envResponse = $null
 
       try {
@@ -135,7 +148,7 @@ resource "terraform_data" "site24x7_env_setup" {
         Log "  Fetching existing environments..."
         $allEnvs = Invoke-RestMethod -Uri "$baseUrl/api/v1/environments/" -Method GET -Headers $headers -TimeoutSec 10
         $envList = if ($allEnvs.data) { $allEnvs.data } else { @($allEnvs) }
-        $envResponse = $envList | Where-Object { $_.name -eq "${var.site24x7_environment_name}" } | Select-Object -First 1
+        $envResponse = $envList | Where-Object { $_.name -eq "${var.site24x7_environment_name}${local.ticket_suffix}" } | Select-Object -First 1
         if (-not $envResponse) {
           Log "FAILED: Could not create or find environment"
           exit 1
@@ -184,12 +197,23 @@ resource "terraform_data" "site24x7_env_setup" {
 # =============================================================================
 
 data "local_file" "site24x7_env_output" {
+  # count = 1 unconditionally — the depends_on ensures Terraform defers reading
+  # this file until apply time, after site24x7_env_setup has written it.
+  # Using fileexists() here caused an "inconsistent result" error: the file
+  # does not exist at plan time (count = 0 is planned), but the provisioner
+  # creates it during apply, so the count would change to 1 mid-apply.
+  # depends_on on a managed resource is sufficient to defer the data source read.
+  count      = 1
   depends_on = [terraform_data.site24x7_env_setup]
   filename   = local.env_output_file
 }
 
 locals {
-  env_output = jsondecode(data.local_file.site24x7_env_output.content)
+  env_output = length(data.local_file.site24x7_env_output) > 0 ? jsondecode(data.local_file.site24x7_env_output[0].content) : {
+    agent_token    = ""
+    environment_id = ""
+    server_address = ""
+  }
 
   site24x7_token          = local.env_output.agent_token
   site24x7_environment_id = local.env_output.environment_id
@@ -318,6 +342,10 @@ resource "kubernetes_daemon_set_v1" "site24x7_agent" {
     kubernetes_secret.site24x7_agent_token,
     kubernetes_service_account.site24x7_agent,
     kubernetes_cluster_role_binding.site24x7_agent,
+    # Destroy ordering: chaos agent destroys before monitoring agents
+    kubernetes_daemonset.go_apm_exporter,
+    kubernetes_daemonset.site24x7_agent,
+    kubernetes_deployment.site24x7_ksm,
   ]
 
   metadata {
@@ -546,7 +574,7 @@ output "site24x7_chaos_agent_status" {
   description = "Summary of the deployed Site24x7 Labs chaos agent"
   value = {
     cloud_provider = var.cloud_provider
-    cluster_name   = var.cluster_name
+    cluster_name   = local.effective_cluster_name
     platform       = var.site24x7_platform
     namespace      = var.site24x7_namespace
     server         = var.site24x7_server

@@ -9,7 +9,13 @@ param(
     [int]$MaxAttempts = 10,
 
     [Parameter(Mandatory=$false)]
-    [int]$DelaySec = 30
+    [int]$DelaySec = 30,
+
+    [Parameter(Mandatory=$false)]
+    [string]$ZohoAccountsBase = "https://accounts.zoho.com",
+
+    [Parameter(Mandatory=$false)]
+    [string]$Site24x7ApiBase = "https://www.site24x7.com"
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,7 +40,7 @@ $tokenBody = @{
 }
 
 try {
-    $tokenResponse = Invoke-RestMethod -Uri "https://accounts.zoho.com/oauth/v2/token" -Method POST -Body $tokenBody
+    $tokenResponse = Invoke-RestMethod -Uri "$ZohoAccountsBase/oauth/v2/token" -Method POST -Body $tokenBody
 } catch {
     Write-Error "ERROR: OAuth token refresh request failed: $_"
     exit 1
@@ -56,7 +62,7 @@ $matched = 0
 for ($i = 1; $i -le $MaxAttempts; $i++) {
     Write-Host "Attempt $i of $MaxAttempts - Checking APM registrations..." -ForegroundColor Cyan
     try {
-        $response = Invoke-RestMethod -Uri "https://www.site24x7.com/api/apminsight/app/H" -Method GET -Headers $headers
+        $response = Invoke-RestMethod -Uri "$Site24x7ApiBase/api/apminsight/app/H" -Method GET -Headers $headers
     } catch {
         Write-Host "  API request failed: $_" -ForegroundColor Red
         if ($i -lt $MaxAttempts) {

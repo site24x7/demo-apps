@@ -12,7 +12,13 @@ param(
     [int]$HealthThresholdCount = 0,
 
     [Parameter(Mandatory=$false)]
-    [string]$OutputFile = ""
+    [string]$OutputFile = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ZohoAccountsBase = "https://accounts.zoho.com",
+
+    [Parameter(Mandatory=$false)]
+    [string]$Site24x7ApiBase = "https://www.site24x7.com"
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,7 +34,7 @@ $tokenBody = @{
     client_secret = $env:SITE24X7_CLIENT_SECRET
     refresh_token = $env:SITE24X7_REFRESH_TOKEN
 }
-$tokenResponse = Invoke-RestMethod -Uri "https://accounts.zoho.com/oauth/v2/token" -Method POST -Body $tokenBody
+$tokenResponse = Invoke-RestMethod -Uri "$ZohoAccountsBase/oauth/v2/token" -Method POST -Body $tokenBody
 $accessToken   = $tokenResponse.access_token
 
 if (-not $accessToken) {
@@ -59,7 +65,7 @@ Write-Host "Checking for existing monitor group '$GroupName'..." -ForegroundColo
 
 $existingGroupId = $null
 try {
-    $allGroups = Invoke-RestMethod -Uri "https://www.site24x7.com/api/monitor_groups" `
+    $allGroups = Invoke-RestMethod -Uri "$Site24x7ApiBase/api/monitor_groups" `
         -Method GET -Headers $headers -TimeoutSec 30
 
     if ($allGroups.code -eq 0 -and $allGroups.data) {
@@ -95,7 +101,7 @@ if ($existingGroupId) {
     # UPDATE existing group
     Write-Host "Updating monitor group $existingGroupId..." -ForegroundColor Cyan
 
-    $updateUrl = "https://www.site24x7.com/api/monitor_groups/$existingGroupId"
+    $updateUrl = "$Site24x7ApiBase/api/monitor_groups/$existingGroupId"
     $response = Invoke-RestMethod -Uri $updateUrl -Method PUT -Headers $headers `
         -Body $jsonBody -TimeoutSec 30
 
@@ -110,7 +116,7 @@ if ($existingGroupId) {
     # CREATE new group
     Write-Host "Creating monitor group '$GroupName'..." -ForegroundColor Cyan
 
-    $response = Invoke-RestMethod -Uri "https://www.site24x7.com/api/monitor_groups" `
+    $response = Invoke-RestMethod -Uri "$Site24x7ApiBase/api/monitor_groups" `
         -Method POST -Headers $headers -Body $jsonBody -TimeoutSec 30
 
     if ($response.code -eq 0 -and $response.data) {
@@ -127,7 +133,7 @@ if ($existingGroupId) {
 # ──────────────────────────────────────────────
 Write-Host "Verifying monitor group membership..." -ForegroundColor Cyan
 
-$verifyUrl = "https://www.site24x7.com/api/monitor_groups/$resultGroupId"
+$verifyUrl = "$Site24x7ApiBase/api/monitor_groups/$resultGroupId"
 $verifyResponse = Invoke-RestMethod -Uri $verifyUrl -Method GET -Headers $headers -TimeoutSec 30
 
 if ($verifyResponse.code -eq 0 -and $verifyResponse.data) {

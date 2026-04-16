@@ -87,6 +87,100 @@ resource "kubernetes_persistent_volume_claim" "mysql_pvc" {
   }
 
   wait_until_bound = false
+
+  # Destroy ordering: the cleanup provisioner in terraform_data.mysql_pvc_finalizer_cleanup
+  # must fully complete (patch finalizer, kubectl delete --wait=true) BEFORE Terraform
+  # issues its own DELETE for this resource. Without this explicit edge Terraform may
+  # schedule the two operations concurrently, catching the PVC mid-termination with the
+  # pvc-protection finalizer still set and failing with "still exists with finalizers".
+  # NOTE: terraform_data.mysql_pvc_finalizer_cleanup no longer reads from this resource's
+  # attributes (it uses hardcoded strings) so there is no circular dependency.
+  depends_on = [terraform_data.mysql_pvc_finalizer_cleanup]
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = all
+  }
+}
+
+# ── PVC Finalizer Cleanup ──
+# The kubernetes_persistent_volume_claim resource has no delete timeout.
+# On destroy, the PVC hangs in Terminating state because the
+# pvc-protection finalizer waits for the MySQL pod to fully stop and the
+# EBS volume to detach.  This helper waits briefly for the pod to drain,
+# then patches the finalizer away so the subsequent Terraform delete
+# returns immediately.
+resource "terraform_data" "mysql_pvc_finalizer_cleanup" {
+  input = {
+    pvc_name     = "mysql-pvc"
+    namespace    = "zylkerkart"
+    cluster_name = local.effective_cluster_name
+    aws_region   = var.aws_region
+  }
+
+  # On destroy, Terraform reverses depends_on edges.
+  # kubernetes_persistent_volume_claim.mysql_pvc depends_on this resource,
+  # so Terraform will destroy mysql_pvc AFTER this cleanup provisioner finishes.
+  # The destroy provisioner script itself polls until the MySQL pod is gone
+  # before patching the finalizer — so an explicit depends_on on
+  # kubernetes_deployment.mysql is NOT needed here (it would create a cycle:
+  # mysql_pvc_finalizer_cleanup → mysql → mysql_pvc → mysql_pvc_finalizer_cleanup).
+  #
+  # Depending on aws_eks_addon.ebs_csi ensures the CSI driver is kept alive
+  # until AFTER this cleanup completes — i.e. the driver is only torn down
+  # once the PVC finalizer has been stripped and the EBS volume detached.
+  depends_on = [
+    aws_eks_addon.ebs_csi,
+  ]
+
+  provisioner "local-exec" {
+    when        = destroy
+    interpreter = ["powershell", "-NoProfile", "-Command"]
+    command     = <<-EOT
+      # Update kubeconfig so kubectl can reach the cluster from this local-exec context.
+      if ("${self.input.cluster_name}" -ne "") {
+        try {
+          aws eks update-kubeconfig --region "${self.input.aws_region}" --name "${self.input.cluster_name}" 2>$null
+        } catch {}
+      }
+
+      Write-Host "Waiting for MySQL pod to terminate and release PVC..."
+      $timeout = 300
+      $elapsed = 0
+      while ($elapsed -lt $timeout) {
+        $pods = kubectl get pods -n ${self.input.namespace} -l app=mysql --no-headers 2>$null
+        if (-not $pods) {
+          Write-Host "MySQL pod terminated after $elapsed seconds."
+          break
+        }
+        Start-Sleep -Seconds 10
+        $elapsed += 10
+        Write-Host "Still waiting for MySQL pod... ($elapsed seconds elapsed)"
+      }
+      Write-Host "Waiting 15s for EBS/disk volume detach..."
+      Start-Sleep -Seconds 15
+
+      Write-Host "Removing PVC finalizer and force-deleting PVC..."
+      kubectl patch pvc ${self.input.pvc_name} -n ${self.input.namespace} --type=merge -p "{`"metadata`":{`"finalizers`":null}}"
+      kubectl delete pvc ${self.input.pvc_name} -n ${self.input.namespace} --ignore-not-found=true --wait=true --timeout=60s
+
+      Write-Host "Waiting for PVC to disappear from cluster..."
+      $delTimeout = 120
+      $delElapsed = 0
+      while ($delElapsed -lt $delTimeout) {
+        $pvc = kubectl get pvc ${self.input.pvc_name} -n ${self.input.namespace} --no-headers 2>$null
+        if (-not $pvc) {
+          Write-Host "PVC fully deleted after $delElapsed seconds."
+          break
+        }
+        Write-Host "PVC still exists, re-patching finalizer..."
+        kubectl patch pvc ${self.input.pvc_name} -n ${self.input.namespace} --type=merge -p "{`"metadata`":{`"finalizers`":null}}" 2>$null
+        Start-Sleep -Seconds 5
+        $delElapsed += 5
+      }
+      Write-Host "PVC cleanup complete."
+    EOT
+  }
 }
 
 resource "kubernetes_deployment" "mysql" {
@@ -179,11 +273,14 @@ resource "kubernetes_deployment" "mysql" {
   timeouts {
     create = "10m"
     update = "10m"
+    delete = "10m"
   }
 
   wait_for_rollout = true
 
-  depends_on = [kubernetes_persistent_volume_claim.mysql_pvc]
+  depends_on = [
+    kubernetes_persistent_volume_claim.mysql_pvc,
+  ]
 }
 
 resource "kubernetes_service" "mysql" {
@@ -1522,6 +1619,10 @@ resource "kubernetes_service" "storefront" {
   metadata {
     name      = "storefront"
     namespace = kubernetes_namespace.zylkerkart.metadata[0].name
+    annotations = {
+      "service.beta.kubernetes.io/aws-load-balancer-type"   = "nlb"
+      "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing"
+    }
   }
   spec {
     type     = "LoadBalancer"
@@ -1554,6 +1655,16 @@ resource "helm_release" "ingress_nginx" {
   set {
     name  = "controller.service.type"
     value = "LoadBalancer"
+  }
+
+  set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+    value = "nlb"
+  }
+
+  set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
+    value = "internet-facing"
   }
 
   depends_on = [kubernetes_namespace.zylkerkart]
@@ -1904,6 +2015,13 @@ resource "kubernetes_daemonset" "go_apm_exporter" {
   depends_on = [
     kubernetes_service_account.apm_agent_sa,
     kubernetes_cluster_role_binding.apm_agent_rolebinding,
+    # Destroy ordering: monitoring agents destroy before app workloads
+    kubernetes_deployment.product_service,
+    kubernetes_deployment.order_service,
+    kubernetes_deployment.search_service,
+    kubernetes_deployment.payment_service,
+    kubernetes_deployment.auth_service,
+    kubernetes_deployment.storefront,
   ]
 }
 
@@ -2250,6 +2368,13 @@ resource "kubernetes_daemonset" "site24x7_agent" {
     kubernetes_service_account.site24x7,
     kubernetes_cluster_role_binding.site24x7,
     kubernetes_config_map.site24x7,
+    # Destroy ordering: server monitoring agent destroys before app workloads
+    kubernetes_deployment.product_service,
+    kubernetes_deployment.order_service,
+    kubernetes_deployment.search_service,
+    kubernetes_deployment.payment_service,
+    kubernetes_deployment.auth_service,
+    kubernetes_deployment.storefront,
   ]
 }
 
@@ -2503,6 +2628,13 @@ resource "kubernetes_deployment" "site24x7_ksm" {
   depends_on = [
     kubernetes_service_account.site24x7_ksm,
     kubernetes_cluster_role_binding.site24x7_ksm,
+    # Destroy ordering: KSM destroys before app workloads
+    kubernetes_deployment.product_service,
+    kubernetes_deployment.order_service,
+    kubernetes_deployment.search_service,
+    kubernetes_deployment.payment_service,
+    kubernetes_deployment.auth_service,
+    kubernetes_deployment.storefront,
   ]
 }
 
@@ -2555,16 +2687,17 @@ resource "null_resource" "wait_for_elb_cleanup" {
   }
 
   provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      echo "Updating kubeconfig..."
-      aws eks update-kubeconfig --region ${self.triggers.aws_region} --name ${self.triggers.cluster_name} 2>/dev/null || true
-      echo "Deleting LoadBalancer services to trigger ELB deprovisioning..."
-      kubectl delete svc storefront -n zylkerkart --ignore-not-found=true 2>/dev/null || true
-      kubectl delete svc ingress-nginx-controller -n ingress-nginx --ignore-not-found=true 2>/dev/null || true
-      echo "Waiting 90s for AWS ELBs to fully deprovision and release Elastic IPs..."
-      sleep 90
-      echo "ELB cleanup wait complete."
+    when        = destroy
+    interpreter = ["powershell", "-NoProfile", "-Command"]
+    command     = <<-EOT
+      Write-Host "Updating kubeconfig..."
+      aws eks update-kubeconfig --region ${self.triggers.aws_region} --name ${self.triggers.cluster_name} 2>$null
+      Write-Host "Deleting LoadBalancer services to trigger ELB deprovisioning..."
+      kubectl delete svc storefront -n zylkerkart --ignore-not-found=true 2>$null
+      kubectl delete svc ingress-nginx-controller -n ingress-nginx --ignore-not-found=true 2>$null
+      Write-Host "Waiting 90s for AWS ELBs to fully deprovision and release Elastic IPs..."
+      Start-Sleep -Seconds 90
+      Write-Host "ELB cleanup wait complete."
     EOT
   }
 }
