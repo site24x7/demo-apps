@@ -1,0 +1,44 @@
+# =============================================================================
+# ZylkerKart Order Service — Node.js 18 / Express
+# Port: 8082
+# Prerequisites: Node.js 18+
+# =============================================================================
+
+[Unit]
+Description=ZylkerKart Order Service (Express)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zylkerkart
+Group=zylkerkart
+
+WorkingDirectory=/opt/zylkerkart/order-service
+EnvironmentFile=/etc/zylkerkart/order-service.env
+
+ExecStart=/usr/bin/node /opt/zylkerkart/order-service/src/app.js
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zylkerkart/order-service /var/site24x7-labs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-order-service
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

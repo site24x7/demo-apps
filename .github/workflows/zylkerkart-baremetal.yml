@@ -1,0 +1,640 @@
+# =============================================================================
+# ZylkerKart — Bare Metal Artifact Build & Release
+# =============================================================================
+# Builds universal Linux (amd64) tarballs for all ZylkerKart services
+# and publishes them as GitHub Release assets.
+#
+# Trigger: Push a git tag matching 'v*' (e.g., v1.0.0)
+#
+# Artifacts (8 tarballs):
+#   - zylkerkart-storefront-<version>-linux-amd64.tar.gz
+#   - zylkerkart-product-service-<version>-linux-amd64.tar.gz
+#   - zylkerkart-order-service-<version>-linux-amd64.tar.gz
+#   - zylkerkart-search-service-<version>-linux-amd64.tar.gz
+#   - zylkerkart-payment-service-<version>-linux-amd64.tar.gz
+#   - zylkerkart-auth-service-<version>-linux-amd64.tar.gz
+#   - zylkerkart-mysql-<version>.tar.gz
+#   - zylkerkart-redis-<version>.tar.gz
+#
+# Required secrets:
+#   - GH_PKG_TOKEN  — Classic PAT with read:packages scope (for cross-repo
+#                     access to site24x7/observe-labs Maven/Go packages)
+# =============================================================================
+
+name: "ZylkerKart: Bare Metal Build & Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release version tag (e.g., v1.0.0)"
+        required: true
+        type: string
+
+env:
+  APP_ROOT: Applications/ZylkerKart_Ecommerce
+  BAREMETAL_ROOT: Applications/ZylkerKart_Ecommerce/baremetal
+
+permissions:
+  contents: write  # Needed to create releases
+
+# =============================================================================
+# Jobs — All build jobs run in parallel, then release collects all artifacts
+# =============================================================================
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # 1. Storefront — Java 17 / Spring Boot (Fat JAR)
+  # ---------------------------------------------------------------------------
+  build-storefront:
+    name: "Build: storefront"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Configure Maven for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'SETTINGS'
+          <settings>
+            <servers>
+              <server>
+                <id>github-site24x7</id>
+                <username>github-actions</username>
+                <password>${env.GITHUB_TOKEN}</password>
+              </server>
+            </servers>
+          </settings>
+          SETTINGS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+
+      - name: Build JAR
+        run: mvn package -DskipTests -B -q
+        working-directory: ${{ env.APP_ROOT }}/services/storefront
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-storefront-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin" "${PKG}/config" "${PKG}/systemd"
+
+          # Application
+          cp ${{ env.APP_ROOT }}/services/storefront/target/*.jar "${PKG}/bin/app.jar"
+
+          # Configs
+          cp ${{ env.BAREMETAL_ROOT }}/config/storefront.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-storefront.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          # Manifest
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=storefront
+          SERVICE_TYPE=java
+          SERVICE_PORT=80
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-tarball
+          path: zylkerkart-storefront-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 2. Product Service — Java 17 / Spring Boot (Fat JAR)
+  # ---------------------------------------------------------------------------
+  build-product-service:
+    name: "Build: product-service"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Configure Maven for GitHub Packages
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'SETTINGS'
+          <settings>
+            <servers>
+              <server>
+                <id>github-site24x7</id>
+                <username>github-actions</username>
+                <password>${env.GITHUB_TOKEN}</password>
+              </server>
+            </servers>
+          </settings>
+          SETTINGS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+
+      - name: Build JAR
+        run: mvn package -DskipTests -B -q
+        working-directory: ${{ env.APP_ROOT }}/services/product-service
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-product-service-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin" "${PKG}/config" "${PKG}/systemd"
+
+          cp ${{ env.APP_ROOT }}/services/product-service/target/*.jar "${PKG}/bin/app.jar"
+          cp ${{ env.BAREMETAL_ROOT }}/config/product-service.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-product-service.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=product-service
+          SERVICE_TYPE=java
+          SERVICE_PORT=8081
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-service-tarball
+          path: zylkerkart-product-service-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 3. Order Service — Node.js 18 / Express (bundled node_modules)
+  # ---------------------------------------------------------------------------
+  build-order-service:
+    name: "Build: order-service"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install production dependencies
+        run: npm install --omit=dev
+        working-directory: ${{ env.APP_ROOT }}/services/order-service
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-order-service-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin/src" "${PKG}/config" "${PKG}/systemd"
+
+          # Application source + dependencies
+          cp -a ${{ env.APP_ROOT }}/services/order-service/src/* "${PKG}/bin/src/"
+          cp -a ${{ env.APP_ROOT }}/services/order-service/node_modules "${PKG}/bin/"
+          cp ${{ env.APP_ROOT }}/services/order-service/package.json "${PKG}/bin/"
+
+          # Configs
+          cp ${{ env.BAREMETAL_ROOT }}/config/order-service.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-order-service.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=order-service
+          SERVICE_TYPE=nodejs
+          SERVICE_PORT=8082
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: order-service-tarball
+          path: zylkerkart-order-service-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 4. Search Service — Go 1.21 / Gin (Static Binary)
+  # ---------------------------------------------------------------------------
+  build-search-service:
+    name: "Build: search-service"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Go 1.21
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Configure Go for private modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GH_PKG_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GOPRIVATE: github.com/site24x7/*
+
+      - name: Build static binary
+        run: |
+          go mod tidy
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o search-service .
+        working-directory: ${{ env.APP_ROOT }}/services/search-service
+        env:
+          GOPRIVATE: github.com/site24x7/*
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-search-service-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin" "${PKG}/config" "${PKG}/systemd"
+
+          cp ${{ env.APP_ROOT }}/services/search-service/search-service "${PKG}/bin/"
+          chmod +x "${PKG}/bin/search-service"
+
+          cp ${{ env.BAREMETAL_ROOT }}/config/search-service.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-search-service.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=search-service
+          SERVICE_TYPE=go
+          SERVICE_PORT=8083
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-service-tarball
+          path: zylkerkart-search-service-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 5. Payment Service — Python 3.11 / FastAPI (Source + requirements.txt)
+  # ---------------------------------------------------------------------------
+  build-payment-service:
+    name: "Build: payment-service"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-payment-service-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin/app" "${PKG}/config" "${PKG}/systemd"
+
+          # Python source + requirements (venv created on target by install.sh)
+          cp -a ${{ env.APP_ROOT }}/services/payment-service/app/* "${PKG}/bin/app/"
+          cp ${{ env.APP_ROOT }}/services/payment-service/requirements.txt "${PKG}/bin/"
+
+          cp ${{ env.BAREMETAL_ROOT }}/config/payment-service.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-payment-service.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=payment-service
+          SERVICE_TYPE=python
+          SERVICE_PORT=8084
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-service-tarball
+          path: zylkerkart-payment-service-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 6. Auth Service — .NET 8 / ASP.NET Core (Published DLLs, amd64 only)
+  # ---------------------------------------------------------------------------
+  build-auth-service:
+    name: "Build: auth-service"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish
+        run: dotnet publish -c Release -r linux-x64 --self-contained false -o ./publish
+        working-directory: ${{ env.APP_ROOT }}/services/auth-service
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-auth-service-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin" "${PKG}/config" "${PKG}/systemd"
+
+          cp -a ${{ env.APP_ROOT }}/services/auth-service/publish/* "${PKG}/bin/"
+
+          cp ${{ env.BAREMETAL_ROOT }}/config/auth-service.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-auth-service.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=auth-service
+          SERVICE_TYPE=dotnet
+          SERVICE_PORT=8085
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-service-tarball
+          path: zylkerkart-auth-service-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 7. MySQL — Schema + Generated Seed Data
+  # ---------------------------------------------------------------------------
+  build-mysql:
+    name: "Build: mysql"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate seed data SQL
+        run: python seed/generate_seed_sql.py product_datasets.csv 02-seed.sql
+        working-directory: ${{ env.APP_ROOT }}/db
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-mysql-${VERSION}"
+          mkdir -p "${PKG}/sql" "${PKG}/config"
+
+          # SQL files
+          cp ${{ env.APP_ROOT }}/db/01-schema.sql "${PKG}/sql/"
+          cp ${{ env.APP_ROOT }}/db/02-seed.sql "${PKG}/sql/02-seed-data.sql"
+
+          # Config + scripts
+          cp ${{ env.BAREMETAL_ROOT }}/config/mysql.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/setup-mysql.sh "${PKG}/"
+          chmod +x "${PKG}/setup-mysql.sh"
+
+          # Manifest (for documentation, not used by install.sh)
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=mysql
+          SERVICE_TYPE=database
+          SERVICE_PORT=3306
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mysql-tarball
+          path: zylkerkart-mysql-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 8. Redis — Configuration Only
+  # ---------------------------------------------------------------------------
+  build-redis:
+    name: "Build: redis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-redis-${VERSION}"
+          mkdir -p "${PKG}/config" "${PKG}/systemd"
+
+          cp ${{ env.BAREMETAL_ROOT }}/config/redis.conf "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-redis.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/setup-redis.sh "${PKG}/"
+          chmod +x "${PKG}/setup-redis.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=redis
+          SERVICE_TYPE=cache
+          SERVICE_PORT=6379
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redis-tarball
+          path: zylkerkart-redis-*.tar.gz
+          retention-days: 1
+
+  # ===========================================================================
+  # Release — Collect all tarballs and publish as GitHub Release
+  # ===========================================================================
+  release:
+    name: "Create GitHub Release"
+    runs-on: ubuntu-latest
+    needs:
+      - build-storefront
+      - build-product-service
+      - build-order-service
+      - build-search-service
+      - build-payment-service
+      - build-auth-service
+      - build-mysql
+      - build-redis
+    steps:
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f -name "*.tar.gz" | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "ZylkerKart ${{ steps.version.outputs.tag }} — Bare Metal"
+          draft: false
+          prerelease: false
+          body: |
+            ## ZylkerKart ${{ steps.version.outputs.tag }} — Bare Metal Artifacts
+
+            Universal Linux (amd64) tarballs for bare metal deployment.
+            Each artifact includes an `install.sh` script, systemd unit file, and env config template.
+
+            ### Quick Start
+
+            ```bash
+            # Download an artifact
+            curl -LO <artifact-url>
+
+            # Extract and install
+            tar xzf zylkerkart-<service>-${{ steps.version.outputs.tag }}-linux-amd64.tar.gz
+            cd zylkerkart-<service>-${{ steps.version.outputs.tag }}-linux-amd64
+            sudo ./install.sh
+
+            # Configure and start
+            sudo nano /etc/zylkerkart/<service>.env
+            sudo systemctl start zylkerkart-<service>
+            ```
+
+            ### Artifacts
+
+            | Artifact | Runtime Required |
+            |---|---|
+            | `zylkerkart-storefront-*` | JRE 17 |
+            | `zylkerkart-product-service-*` | JRE 17 |
+            | `zylkerkart-order-service-*` | Node.js 18 |
+            | `zylkerkart-search-service-*` | None (static binary) |
+            | `zylkerkart-payment-service-*` | Python 3.11 + pip |
+            | `zylkerkart-auth-service-*` | dotnet-runtime-8.0 |
+            | `zylkerkart-mysql-*` | MySQL 8.0 |
+            | `zylkerkart-redis-*` | Redis 7.x |
+
+            ### Deployment Order
+
+            1. MySQL → `setup-mysql.sh`
+            2. Redis → `setup-redis.sh`
+            3. Auth Service → `install.sh`
+            4. Product Service → `install.sh`
+            5. Search Service → `install.sh`
+            6. Order Service → `install.sh`
+            7. Payment Service → `install.sh`
+            8. Storefront → `install.sh`
+          files: artifacts/**/*.tar.gz

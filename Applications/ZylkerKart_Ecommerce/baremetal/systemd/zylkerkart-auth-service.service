@@ -1,0 +1,44 @@
+# =============================================================================
+# ZylkerKart Auth Service — .NET 8 / ASP.NET Core
+# Port: 8085
+# Prerequisites: dotnet-runtime-8.0 (amd64 only)
+# =============================================================================
+
+[Unit]
+Description=ZylkerKart Auth Service (ASP.NET Core)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zylkerkart
+Group=zylkerkart
+
+WorkingDirectory=/opt/zylkerkart/auth-service
+EnvironmentFile=/etc/zylkerkart/auth-service.env
+
+ExecStart=/usr/bin/dotnet /opt/zylkerkart/auth-service/AuthService.dll
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zylkerkart/auth-service /var/site24x7-labs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-auth-service
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

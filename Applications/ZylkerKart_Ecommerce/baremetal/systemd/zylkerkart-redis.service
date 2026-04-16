@@ -1,0 +1,45 @@
+# =============================================================================
+# ZylkerKart Redis — Custom config override
+# Port: 6379
+# Prerequisites: redis-server 7.x (pre-installed)
+# =============================================================================
+# This is an OPTIONAL systemd override. If your distro already manages Redis
+# via its own systemd unit (e.g., redis-server.service), you may not need this.
+# Use this only if you want a standalone ZylkerKart-specific Redis instance.
+
+[Unit]
+Description=ZylkerKart Redis (Custom Instance)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=redis
+Group=redis
+
+ExecStart=/usr/bin/redis-server /etc/zylkerkart/redis.conf
+ExecStop=/usr/bin/redis-cli shutdown
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/redis /var/log/redis /run/redis
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-redis
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

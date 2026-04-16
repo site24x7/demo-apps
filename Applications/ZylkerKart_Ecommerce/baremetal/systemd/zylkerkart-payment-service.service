@@ -1,0 +1,47 @@
+# =============================================================================
+# ZylkerKart Payment Service — Python 3.11 / FastAPI
+# Port: 8084
+# Prerequisites: Python 3.11+
+# =============================================================================
+
+[Unit]
+Description=ZylkerKart Payment Service (FastAPI)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zylkerkart
+Group=zylkerkart
+
+WorkingDirectory=/opt/zylkerkart/payment-service
+EnvironmentFile=/etc/zylkerkart/payment-service.env
+
+ExecStart=/opt/zylkerkart/payment-service/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8084
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Python-specific
+Environment=PYTHONUNBUFFERED=1
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zylkerkart/payment-service /var/site24x7-labs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-payment-service
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
