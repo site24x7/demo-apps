@@ -2,11 +2,38 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Site24x7.Chaos.Extensions;
 using ZylkerKart.AuthService.Data;
 using ZylkerKart.AuthService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ─── OpenTelemetry → Site24x7 ───────────────────────────────
+// Activated by S247_OTEL_ENABLED=true. Exporter reads OTEL_EXPORTER_OTLP_*
+// env vars, which the entrypoint script populates with the Site24x7 endpoint
+// and license-key header.
+var otelEnabled = string.Equals(Environment.GetEnvironmentVariable("S247_OTEL_ENABLED"), "true",
+    StringComparison.OrdinalIgnoreCase);
+if (otelEnabled)
+{
+    var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "ZylkerKart-Auth";
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService(serviceName, serviceVersion: "1.0.0"))
+        .WithTracing(t => t
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
+            .AddOtlpExporter())
+        .WithMetrics(m => m
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddOtlpExporter());
+    Console.WriteLine($"[otel] Auth Service tracing → {Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "default OTLP endpoint"}");
+}
 
 // ─── Database ───────────────────────────────────────────────
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

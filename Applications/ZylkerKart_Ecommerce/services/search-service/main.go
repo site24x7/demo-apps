@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	chaos "github.com/site24x7/observe-labs/sdks/go"
 	"github.com/site24x7/observe-labs/sdks/go/fault"
@@ -14,9 +16,19 @@ import (
 
 	"zylkerkart/search-service/config"
 	"zylkerkart/search-service/handlers"
+	"zylkerkart/search-service/observability"
 )
 
 func main() {
+	// OpenTelemetry → Site24x7 (no-op when S247_OTEL_ENABLED != "true")
+	otelShutdown, err := observability.InitTracer(context.Background(),
+		config.GetEnv("OTEL_SERVICE_NAME", "ZylkerKart-Search"))
+	if err != nil {
+		log.Printf("[otel] init failed: %v", err)
+	} else if otelShutdown != nil {
+		defer otelShutdown(context.Background())
+	}
+
 	// Initialize Site24x7 Labs Chaos SDK
 	chaosInstance, err := chaos.InitChaos(
 		config.GetEnv("CHAOS_SDK_APP_NAME", "search-service"),
@@ -42,6 +54,9 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// OTel HTTP server instrumentation (no-op if tracer provider is the default no-op)
+	r.Use(otelgin.Middleware(config.GetEnv("OTEL_SERVICE_NAME", "ZylkerKart-Search")))
 
 	// Chaos SDK middleware (inbound HTTP faults)
 	if chaosInstance != nil {

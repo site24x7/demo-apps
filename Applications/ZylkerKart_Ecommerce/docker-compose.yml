@@ -25,6 +25,28 @@ version: "3.9"
 #   S247_LICENSE_KEY=your_license_key_here
 #
 # When S247_APM_ENABLED=false (default), services run without any APM overhead.
+#
+# Site24x7 OpenTelemetry Integration
+# ──────────────────────────────────
+# Alternatively (and mutually exclusive with the proprietary APM agents above),
+# every service can export traces/metrics to Site24x7 via the OpenTelemetry
+# OTLP/HTTP protocol:
+#
+#   S247_OTEL_ENABLED=true \
+#   S247_LICENSE_KEY=<your_key> \
+#   S247_OTEL_ENDPOINT=https://otel.site24x7.com:443 \
+#   docker compose up
+#
+# Regional endpoints (set S247_OTEL_ENDPOINT accordingly):
+#   US        https://otel.site24x7.com:443
+#   EU        https://otel.site24x7.eu:443
+#   India     https://otel.site24x7.in:443
+#   China     https://otel.site24x7.cn:443
+#   Australia https://otel.site24x7.com.au:443
+#
+# The license key is sent as the `Api-Key` OTLP header. When S247_OTEL_ENABLED
+# and S247_APM_ENABLED are both true, OTel takes precedence per service to
+# avoid agent collisions (e.g. dual -javaagent loaders).
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -87,9 +109,28 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
       S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      S247_OTEL_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_SERVICE_NAME: ZylkerKart-Product
     entrypoint: ["/bin/sh", "-c", "
-      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+      if [ \"$$S247_OTEL_ENABLED\" = \"true\" ]; then
+        echo '[OTel] Enabled for Product Service (Java)';
+        if [ ! -f /opt/otel-agent/opentelemetry-javaagent.jar ]; then
+          echo '[OTel] Downloading OpenTelemetry Java agent...';
+          apt-get update -qq && apt-get install -y -qq wget > /dev/null 2>&1;
+          mkdir -p /opt/otel-agent;
+          wget -q -O /opt/otel-agent/opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar;
+          echo '[OTel] Java agent installed.';
+        fi;
+        export OTEL_EXPORTER_OTLP_ENDPOINT=$$S247_OTEL_ENDPOINT;
+        export OTEL_EXPORTER_OTLP_HEADERS=\"Api-Key=$$S247_LICENSE_KEY\";
+        export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf;
+        export OTEL_RESOURCE_ATTRIBUTES=service.name=$$OTEL_SERVICE_NAME,service.version=1.0.0,deployment.environment=demo;
+        exec java -Xms256m -Xmx512m
+          -javaagent:/opt/otel-agent/opentelemetry-javaagent.jar
+          -jar app.jar;
+      elif [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
         echo '[Site24x7] APM enabled for Product Service (Java)';
         if [ ! -f /opt/s247-agent/apminsight-javaagent.jar ]; then
           echo '[Site24x7] Downloading Java agent...';
@@ -113,6 +154,7 @@ services:
     "]
     volumes:
       - s247_java_agent:/opt/s247-agent
+      - otel_java_product:/opt/otel-agent
     depends_on:
       mysql:
         condition: service_healthy
@@ -150,12 +192,31 @@ services:
       PAYMENT_SERVICE_URL: http://payment-service:8084
       AUTH_SERVICE_URL: http://auth-service:8085
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
       S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      S247_OTEL_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_SERVICE_NAME: ZylkerKart-Order
       APMINSIGHT_LICENSE_KEY: ${S247_LICENSE_KEY:-}
       APMINSIGHT_APP_NAME: ZylkerKart-Order
       APMINSIGHT_APP_PORT: 8082
     command: ["/bin/sh", "-c", "
-      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+      if [ \"$$S247_OTEL_ENABLED\" = \"true\" ]; then
+        echo '[OTel] Enabled for Order Service (Node.js)';
+        npm install --silent --no-save \
+          @opentelemetry/api \
+          @opentelemetry/sdk-node \
+          @opentelemetry/auto-instrumentations-node \
+          @opentelemetry/exporter-trace-otlp-http \
+          @opentelemetry/exporter-metrics-otlp-http \
+          @opentelemetry/sdk-metrics \
+          @opentelemetry/resources \
+          @opentelemetry/semantic-conventions 2>/dev/null;
+        export OTEL_EXPORTER_OTLP_ENDPOINT=$$S247_OTEL_ENDPOINT;
+        export OTEL_EXPORTER_OTLP_HEADERS=\"Api-Key=$$S247_LICENSE_KEY\";
+        export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf;
+        export OTEL_RESOURCE_ATTRIBUTES=service.name=$$OTEL_SERVICE_NAME,service.version=1.0.0,deployment.environment=demo;
+        exec node --require ./src/tracing.js src/app.js;
+      elif [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
         echo '[Site24x7] APM enabled for Order Service (Node.js)';
         npm install apminsight --silent 2>/dev/null;
         echo '[Site24x7] Node.js agent installed.';
@@ -197,6 +258,13 @@ services:
       DB_NAME: db_search
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
+      S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      OTEL_SERVICE_NAME: ZylkerKart-Search
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_EXPORTER_OTLP_HEADERS: "Api-Key=${S247_LICENSE_KEY:-}"
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=ZylkerKart-Search,service.version=1.0.0,deployment.environment=demo"
     depends_on:
       mysql:
         condition: service_healthy
@@ -232,10 +300,24 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
       S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      S247_OTEL_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_SERVICE_NAME: ZylkerKart-Payment
       APM_APP_NAME: ZylkerKart-Payment
     command: ["/bin/sh", "-c", "
-      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+      if [ \"$$S247_OTEL_ENABLED\" = \"true\" ]; then
+        echo '[OTel] Enabled for Payment Service (Python)';
+        pip install -q opentelemetry-distro opentelemetry-exporter-otlp \
+          opentelemetry-instrumentation-fastapi opentelemetry-instrumentation-mysql \
+          opentelemetry-instrumentation-httpx opentelemetry-instrumentation-logging 2>/dev/null;
+        opentelemetry-bootstrap -a install >/dev/null 2>&1 || true;
+        export OTEL_EXPORTER_OTLP_ENDPOINT=$$S247_OTEL_ENDPOINT;
+        export OTEL_EXPORTER_OTLP_HEADERS=\"Api-Key=$$S247_LICENSE_KEY\";
+        export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf;
+        export OTEL_RESOURCE_ATTRIBUTES=service.name=$$OTEL_SERVICE_NAME,service.version=1.0.0,deployment.environment=demo;
+        exec opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port 8084;
+      elif [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
         echo '[Site24x7] APM enabled for Payment Service (Python)';
         if [ ! -f /opt/S247DataExporter/bin/service.sh ]; then
           echo '[Site24x7] Installing S247DataExporter...';
@@ -292,10 +374,20 @@ services:
       JWT_EXPIRY_MINUTES: 15
       JWT_REFRESH_EXPIRY_DAYS: 7
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
       S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      S247_OTEL_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_SERVICE_NAME: ZylkerKart-Auth
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_EXPORTER_OTLP_HEADERS: "Api-Key=${S247_LICENSE_KEY:-}"
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=ZylkerKart-Auth,service.version=1.0.0,deployment.environment=demo"
       SITE24X7_APP_NAME: ZylkerKart-Auth
     entrypoint: ["/bin/sh", "-c", "
-      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+      if [ \"$$S247_OTEL_ENABLED\" = \"true\" ]; then
+        echo '[OTel] Enabled for Auth Service (.NET) — exporter wired via OpenTelemetry SDK';
+        exec dotnet AuthService.dll;
+      elif [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
         echo '[Site24x7] APM enabled for Auth Service (.NET)';
         if [ ! -f /opt/apminsight/dotnet/ApmInsightDotNetCoreAgent/DotNetCoreAgent/apminsight.conf ]; then
           echo '[Site24x7] Downloading .NET agent...';
@@ -357,9 +449,28 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
+      S247_OTEL_ENABLED: ${S247_OTEL_ENABLED:-false}
       S247_LICENSE_KEY: ${S247_LICENSE_KEY:-}
+      S247_OTEL_ENDPOINT: ${S247_OTEL_ENDPOINT:-https://otel.site24x7.com:443}
+      OTEL_SERVICE_NAME: ZylkerKart-Storefront
     entrypoint: ["/bin/sh", "-c", "
-      if [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
+      if [ \"$$S247_OTEL_ENABLED\" = \"true\" ]; then
+        echo '[OTel] Enabled for Storefront (Java)';
+        if [ ! -f /opt/otel-agent/opentelemetry-javaagent.jar ]; then
+          echo '[OTel] Downloading OpenTelemetry Java agent...';
+          apt-get update -qq && apt-get install -y -qq wget > /dev/null 2>&1;
+          mkdir -p /opt/otel-agent;
+          wget -q -O /opt/otel-agent/opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar;
+          echo '[OTel] Java agent installed.';
+        fi;
+        export OTEL_EXPORTER_OTLP_ENDPOINT=$$S247_OTEL_ENDPOINT;
+        export OTEL_EXPORTER_OTLP_HEADERS=\"Api-Key=$$S247_LICENSE_KEY\";
+        export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf;
+        export OTEL_RESOURCE_ATTRIBUTES=service.name=$$OTEL_SERVICE_NAME,service.version=1.0.0,deployment.environment=demo;
+        exec java -Xms256m -Xmx512m
+          -javaagent:/opt/otel-agent/opentelemetry-javaagent.jar
+          -jar app.jar;
+      elif [ \"$$S247_APM_ENABLED\" = \"true\" ]; then
         echo '[Site24x7] APM enabled for Storefront (Java)';
         if [ ! -f /opt/s247-agent/apminsight-javaagent.jar ]; then
           echo '[Site24x7] Downloading Java agent...';
@@ -383,6 +494,7 @@ services:
     "]
     volumes:
       - s247_java_storefront:/opt/s247-agent
+      - otel_java_storefront:/opt/otel-agent
     depends_on:
       - product-service
       - order-service
@@ -435,6 +547,11 @@ volumes:
   s247_dotnet_agent:
     driver: local
   s247_java_storefront:
+    driver: local
+  # OTel javaagent cache volumes (persist across restarts)
+  otel_java_product:
+    driver: local
+  otel_java_storefront:
     driver: local
 
 # ── Networks ───────────────────────────────────────────────────────────────

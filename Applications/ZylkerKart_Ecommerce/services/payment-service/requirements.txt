@@ -6,3 +6,9 @@ python-dotenv==1.0.0
 httpx==0.26.0
 python-multipart==0.0.6
 site24x7-chaos[fastapi]==1.1.2
+opentelemetry-distro==0.50b0
+opentelemetry-exporter-otlp==1.29.0
+opentelemetry-instrumentation-fastapi==0.50b0
+opentelemetry-instrumentation-mysql==0.50b0
+opentelemetry-instrumentation-httpx==0.50b0
+opentelemetry-instrumentation-logging==0.50b0
