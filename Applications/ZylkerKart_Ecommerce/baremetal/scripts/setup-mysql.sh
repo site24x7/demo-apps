@@ -68,14 +68,39 @@ if ! command -v mysql &>/dev/null; then
     exit 1
 fi
 
+# ── Ensure MySQL is running ─────────────────────────────────────────────────
+if command -v systemctl &>/dev/null; then
+    if ! systemctl is-active --quiet mysql 2>/dev/null; then
+        log "Starting MySQL service..."
+        systemctl start mysql
+        sleep 3
+    fi
+fi
+
+# ── Handle fresh installation (auth_socket → password auth) ─────────────────
+# On a fresh Ubuntu MySQL install, root uses auth_socket (no password).
+# Detect this and switch to mysql_native_password with the configured password.
 MYSQL_CMD="mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -uroot -p${MYSQL_ROOT_PASSWORD}"
 
-# Test connection
 log "Testing MySQL connection..."
-if ! $MYSQL_CMD -e "SELECT 1" &>/dev/null; then
-    err "Cannot connect to MySQL at ${MYSQL_HOST}:${MYSQL_PORT}"
-    err "Check that MySQL is running and the root password is correct."
-    exit 1
+if ! $MYSQL_CMD -e "SELECT 1" &>/dev/null 2>&1; then
+    # Password auth failed — try socket auth (fresh install)
+    if sudo mysql -e "SELECT 1" &>/dev/null 2>&1; then
+        warn "Fresh MySQL installation detected (auth_socket). Setting root password..."
+        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}';"
+        sudo mysql -e "FLUSH PRIVILEGES;"
+        info "Root password configured successfully"
+
+        # Verify password auth now works
+        if ! $MYSQL_CMD -e "SELECT 1" &>/dev/null 2>&1; then
+            err "Failed to connect with password after setting it."
+            exit 1
+        fi
+    else
+        err "Cannot connect to MySQL at ${MYSQL_HOST}:${MYSQL_PORT}"
+        err "Check that MySQL is running and the root password is correct."
+        exit 1
+    fi
 fi
 
 MYSQL_VERSION=$($MYSQL_CMD -N -e "SELECT VERSION()" 2>/dev/null)
