@@ -1,0 +1,24 @@
+# Application build artifacts (must be provided by the user)
+artifacts/
+
+# Terraform state and plans
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/tfplan
+terraform/terraform.tfvars
+
+# Packer manifest files
+packer/packer_manifest.json
+packer/*-manifest.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
