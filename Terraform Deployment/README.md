@@ -24,7 +24,7 @@ graph TD
     VPC --> Sub2["Subnet AZ-2<br/>10.0.2.0/24"]
     VPC --> Sub3["Subnet AZ-3<br/>10.0.3.0/24"]
     VPC --> IGW["Internet Gateway"]
-    IGW --> RT["Route Table<br/>0.0.0.0/0 -> IGW"]
+    IGW --> RT["Route Table<br/>0.0.0.0/0 &rarr; IGW"]
     RT --> Sub1
     RT --> Sub2
     RT --> Sub3
@@ -41,7 +41,7 @@ graph TD
     Client["Client Browser"] --> Ingress["NGINX Ingress Controller<br/>(LoadBalancer)"]
     Ingress -->|"/"| SF["Storefront (BFF)<br/>Java 17 / Spring Boot 3.2<br/>:8080"]
     Ingress -->|"/api/products"| PS["Product Service<br/>Java 17 / Spring Boot<br/>:8081"]
-    Ingress -->|"/api/orders<br/>/api/cart"| OS["Order Service<br/>Node.js 18 / Express<br/>:8082"]
+    Ingress -->|"/api/orders, /api/cart"| OS["Order Service<br/>Node.js 18 / Express<br/>:8082"]
     Ingress -->|"/api/search"| SS["Search Service<br/>Go 1.21 / Gin<br/>:8083"]
     Ingress -->|"/api/payments"| Pay["Payment Service<br/>Python 3.11 / FastAPI<br/>:8084"]
     Ingress -->|"/api/auth"| Auth["Auth Service<br/>C# / .NET 8<br/>:8085"]
