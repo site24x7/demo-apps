@@ -24,8 +24,7 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-alb"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-alb"
   }
 }
 
@@ -59,8 +58,7 @@ resource "aws_security_group" "mysql" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-mysql"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-mysql"
   }
 }
 
@@ -94,8 +92,7 @@ resource "aws_security_group" "redis" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-redis"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-redis"
   }
 }
 
@@ -129,8 +126,7 @@ resource "aws_security_group" "product" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-product"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-product"
   }
 }
 
@@ -164,8 +160,7 @@ resource "aws_security_group" "order" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-order"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-order"
   }
 }
 
@@ -199,8 +194,7 @@ resource "aws_security_group" "search" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-search"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-search"
   }
 }
 
@@ -234,8 +228,7 @@ resource "aws_security_group" "payment" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-payment"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-payment"
   }
 }
 
@@ -269,8 +262,7 @@ resource "aws_security_group" "auth" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-auth"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-auth"
   }
 }
 
@@ -312,7 +304,6 @@ resource "aws_security_group" "storefront" {
   }
 
   tags = {
-    Name    = "zylkerkart-sg-storefront"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-sg-storefront"
   }
 }

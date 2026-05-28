@@ -41,3 +41,9 @@ variable "site24x7_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "enable_ssm_logging" {
+  description = "Enable S3 logging for SSM command output (useful for troubleshooting)"
+  type        = bool
+  default     = false
+}

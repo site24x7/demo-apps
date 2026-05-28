@@ -16,8 +16,7 @@ resource "aws_iam_role" "ec2_ssm" {
   })
 
   tags = {
-    Name    = "zylkerkart-ec2-ssm-role"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-ec2-ssm-role"
   }
 }
 
@@ -27,8 +26,9 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
 }
 
 resource "aws_iam_role_policy" "ssm_s3_logs" {
-  name = "zylkerkart-ssm-s3-logs"
-  role = aws_iam_role.ec2_ssm.id
+  count = var.enable_ssm_logging ? 1 : 0
+  name  = "zylkerkart-ssm-s3-logs"
+  role  = aws_iam_role.ec2_ssm.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -40,8 +40,8 @@ resource "aws_iam_role_policy" "ssm_s3_logs" {
           "s3:GetBucketLocation"
         ]
         Resource = [
-          aws_s3_bucket.ssm_logs.arn,
-          "${aws_s3_bucket.ssm_logs.arn}/*"
+          aws_s3_bucket.ssm_logs[0].arn,
+          "${aws_s3_bucket.ssm_logs[0].arn}/*"
         ]
       }
     ]
@@ -53,7 +53,6 @@ resource "aws_iam_instance_profile" "ssm" {
   role = aws_iam_role.ec2_ssm.name
 
   tags = {
-    Name    = "zylkerkart-ssm-profile"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-ssm-profile"
   }
 }

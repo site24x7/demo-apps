@@ -34,13 +34,20 @@ resource "aws_key_pair" "generated" {
   public_key = tls_private_key.ssh.public_key_openssh
 
   tags = {
-    Name    = var.key_pair_name
-    Project = "ZylkerKart"
+    Name = var.key_pair_name
   }
 }
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Env             = "prod"
+      Managed-by      = "vinoth-kanagaraj-14883"
+      Deployment-mode = "terraform"
+    }
+  }
 }
 
 # ── Ubuntu 22.04 Jammy AMI (latest) ──────────────────────────────────────────
@@ -66,8 +73,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name    = "zylkerkart-vpc"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-vpc"
   }
 }
 
@@ -79,8 +85,7 @@ resource "aws_subnet" "public_a" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name    = "zylkerkart-public-subnet-a"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-public-subnet-a"
   }
 }
 
@@ -91,8 +96,7 @@ resource "aws_subnet" "public_b" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name    = "zylkerkart-public-subnet-b"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-public-subnet-b"
   }
 }
 
@@ -101,8 +105,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name    = "zylkerkart-igw"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-igw"
   }
 }
 
@@ -116,8 +119,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name    = "zylkerkart-public-rt"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-public-rt"
   }
 }
 
@@ -140,8 +142,7 @@ resource "aws_lb" "main" {
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 
   tags = {
-    Name    = "zylkerkart-alb"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-alb"
   }
 }
 
@@ -162,8 +163,7 @@ resource "aws_lb_target_group" "storefront" {
   }
 
   tags = {
-    Name    = "zylkerkart-storefront-tg"
-    Project = "ZylkerKart"
+    Name = "zylkerkart-storefront-tg"
   }
 }
 

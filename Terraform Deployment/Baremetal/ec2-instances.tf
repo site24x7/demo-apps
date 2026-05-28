@@ -7,16 +7,10 @@ resource "aws_instance" "mysql" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "mysql"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-mysql"
-    Project = "ZylkerKart"
     Service = "mysql"
   }
 }
@@ -30,16 +24,10 @@ resource "aws_instance" "redis" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "redis"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-redis"
-    Project = "ZylkerKart"
     Service = "redis"
   }
 }
@@ -53,16 +41,10 @@ resource "aws_instance" "product_service" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "product-service"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-product-service"
-    Project = "ZylkerKart"
     Service = "product-service"
   }
 }
@@ -76,16 +58,10 @@ resource "aws_instance" "order_service" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "order-service"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-order-service"
-    Project = "ZylkerKart"
     Service = "order-service"
   }
 }
@@ -99,16 +75,10 @@ resource "aws_instance" "search_service" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "search-service"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-search-service"
-    Project = "ZylkerKart"
     Service = "search-service"
   }
 }
@@ -122,16 +92,10 @@ resource "aws_instance" "payment_service" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "payment-service"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-payment-service"
-    Project = "ZylkerKart"
     Service = "payment-service"
   }
 }
@@ -145,16 +109,10 @@ resource "aws_instance" "auth_service" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "auth-service"
-    site24x7_key = var.site24x7_key
-  })
-
   depends_on = [aws_route_table_association.public_a]
 
   tags = {
     Name    = "zylkerkart-auth-service"
-    Project = "ZylkerKart"
     Service = "auth-service"
   }
 }
@@ -168,14 +126,8 @@ resource "aws_instance" "storefront" {
   key_name               = aws_key_pair.generated.key_name
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
-  user_data = templatefile("${path.module}/user-data/site24x7.sh", {
-    service_name = "storefront"
-    site24x7_key = var.site24x7_key
-  })
-
   tags = {
     Name    = "zylkerkart-storefront"
-    Project = "ZylkerKart"
     Service = "storefront"
   }
 }

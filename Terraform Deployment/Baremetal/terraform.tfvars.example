@@ -1,0 +1,10 @@
+aws_region       = "us-east-1"
+key_pair_name    = "your-key-pair-name"
+allowed_ssh_cidr = "0.0.0.0/0"  # WARNING: restrict to your IP in production, e.g. "1.2.3.4/32"
+
+# Artifact version to download from GitHub releases (site24x7/demo-apps)
+artifact_version = "v1.0.0"
+
+# Instance types (optional - defaults shown)
+# instance_type_mysql   = "t3.small"
+# instance_type_default = "t3.small"
