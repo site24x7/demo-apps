@@ -12,15 +12,17 @@ from pydantic import BaseModel, Field
 
 from app.instrumentation import init_tracing
 
-# Initialize Site24x7 / Traceloop BEFORE importing OpenAI-backed agent
+# Initialize Site24x7 / Traceloop BEFORE importing LLM-backed agent
 init_tracing()
 
 from app.agent import run_shopping_assistant  # noqa: E402
+from app.llm import available_providers, get_provider  # noqa: E402
+from app.llm.base import LLMError  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("ai-assistant")
 
-app = FastAPI(title="ZylkerKart AI Assistant", version="1.0.0")
+app = FastAPI(title="ZylkerKart AI Assistant", version="1.1.0")
 
 INTERNAL_TOKEN = os.environ.get("AI_INTERNAL_TOKEN", "").strip()
 
@@ -37,6 +39,7 @@ class ChatResponse(BaseModel):
     cards: list[dict[str, Any]] = []
     tools_used: list[str] = []
     model: str | None = None
+    provider: str | None = None
 
 
 def _require_internal(x_internal_token: str | None) -> None:
@@ -50,8 +53,19 @@ def _require_internal(x_internal_token: str | None) -> None:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "ai-assistant"}
+def health() -> dict[str, Any]:
+    info: dict[str, Any] = {
+        "status": "ok",
+        "service": "ai-assistant",
+        "providers": available_providers(),
+    }
+    try:
+        provider = get_provider()
+        info["provider"] = provider.name
+        info["model"] = provider.model
+    except LLMError as e:
+        info["provider_error"] = str(e)
+    return info
 
 
 @app.post("/chat", response_model=ChatResponse)

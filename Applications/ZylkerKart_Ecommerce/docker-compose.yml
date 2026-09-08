@@ -404,9 +404,10 @@ services:
       start_period: 45s
     restart: unless-stopped
 
-  # 7. AI Assistant — Python 3.11 / FastAPI + local Ollama (port 8086)
+  # 7. AI Assistant — Python 3.11 / FastAPI + pluggable LLM (LiteLLM)
   #    LLM observability: Traceloop → Site24x7 OTLP
   #    Not published to the host — reachable only via the Docker network (storefront).
+  #    Providers: set LLM_PROVIDER=ollama|openai|anthropic|azure|groq|compatible
   ai-assistant:
     build:
       context: ./services/ai-assistant
@@ -418,6 +419,16 @@ services:
       PRODUCT_SERVICE_URL: http://product-service:8081
       ORDER_SERVICE_URL: http://order-service:8082
       SEARCH_SERVICE_URL: http://search-service:8083
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-gemma4:latest}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_VERSION: ${LLM_API_VERSION:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:latest}
       AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-zylkerkart-ai-internal-dev-token}
