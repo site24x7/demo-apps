@@ -2,6 +2,7 @@ package com.zylkerkart.storefront.controller;
 
 import com.zylkerkart.storefront.service.ApiGateway;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +16,13 @@ import java.util.Map;
 public class ChatController {
 
     private final ApiGateway api;
+    private final String aiInternalToken;
 
-    public ChatController(ApiGateway api) {
+    public ChatController(
+            ApiGateway api,
+            @Value("${services.ai.internal-token:}") String aiInternalToken) {
         this.api = api;
+        this.aiInternalToken = aiInternalToken;
     }
 
     @PostMapping(value = "/api/chat", produces = "application/json")
@@ -29,6 +34,7 @@ public class ChatController {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", messageObj.toString().trim());
+        // Identity always comes from the server session — never from the browser body
         payload.put("session_id", session.getId());
 
         Object user = session.getAttribute("user");
@@ -39,7 +45,8 @@ public class ChatController {
             payload.put("page_context", body.get("page_context").toString());
         }
 
-        Map<String, Object> result = api.post("ai", "/chat", payload);
+        Map<String, String> headers = Map.of("X-Internal-Token", aiInternalToken == null ? "" : aiInternalToken);
+        Map<String, Object> result = api.post("ai", "/chat", payload, null, headers);
         int status = (int) result.getOrDefault("status", 500);
         return ResponseEntity.status(status).body(result.get("data"));
     }

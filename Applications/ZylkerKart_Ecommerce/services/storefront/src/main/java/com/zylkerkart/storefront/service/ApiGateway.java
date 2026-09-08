@@ -83,12 +83,25 @@ public class ApiGateway {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> post(String service, String path, Object body, String token) {
+        return post(service, path, body, token, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> post(
+            String service,
+            String path,
+            Object body,
+            String token,
+            Map<String, String> extraHeaders) {
         try {
             String url = serviceUrls.get(service) + path;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             if (token != null && !token.isEmpty()) {
                 headers.setBearerAuth(token);
+            }
+            if (extraHeaders != null) {
+                extraHeaders.forEach(headers::set);
             }
             HttpEntity<Object> entity = new HttpEntity<>(body, headers);
             ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.POST, entity, Object.class);
@@ -108,7 +121,7 @@ public class ApiGateway {
     }
 
     public Map<String, Object> post(String service, String path, Object body) {
-        return post(service, path, body, null);
+        return post(service, path, body, null, null);
     }
 
     /**

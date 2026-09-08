@@ -121,13 +121,10 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "get_cart",
-            "description": "Get the shopper's current cart contents for their session.",
+            "description": "Get the current shopper's cart for this request session. Do not invent or supply a session id.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "session_id": {"type": "string"},
-                },
-                "required": ["session_id"],
+                "properties": {},
             },
         },
     },
@@ -135,13 +132,10 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "get_user_orders",
-            "description": "List recent orders for a logged-in user.",
+            "description": "List recent orders for the currently authenticated shopper on this request. Do not invent or supply a user id.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "user_id": {"type": "string", "description": "Authenticated user id"},
-                },
-                "required": ["user_id"],
+                "properties": {},
             },
         },
     },
@@ -173,10 +167,12 @@ def execute_tool(name: str, args: dict[str, Any], context: dict[str, Any]) -> An
         if name == "get_product":
             return get_product(int(args["product_id"]))
         if name == "get_cart":
-            sid = args.get("session_id") or context.get("session_id") or ""
+            # Always bind to server-provided session; ignore model-supplied ids
+            sid = context.get("session_id") or ""
             return get_cart(sid)
         if name == "get_user_orders":
-            uid = args.get("user_id") or context.get("user_id") or ""
+            # Always bind to server-provided user; ignore model-supplied ids
+            uid = context.get("user_id") or ""
             return get_user_orders(uid)
         if name == "get_trending":
             return get_trending(int(args.get("limit", 10)))
