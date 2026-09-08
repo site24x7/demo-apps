@@ -24,7 +24,7 @@ public class WebConfig {
         // RestTemplate with Apache HttpClient 5 keeps inter-service hops traced.
         ConnectionConfig connectionConfig = ConnectionConfig.custom()
                 .setConnectTimeout(Timeout.of(3000, TimeUnit.MILLISECONDS))   // 3s connect
-                .setSocketTimeout(Timeout.of(5000, TimeUnit.MILLISECONDS))    // 5s read
+                .setSocketTimeout(Timeout.of(180000, TimeUnit.MILLISECONDS))  // 180s read (local LLM chat)
                 .build();
 
         PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();

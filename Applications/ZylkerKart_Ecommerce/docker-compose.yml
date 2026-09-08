@@ -10,6 +10,7 @@ version: "3.9"
 #   8083  Search        (Go 1.21 / Gin)
 #   8084  Payment       (Python 3.11 / FastAPI)
 #   8085  Auth          (C# / .NET 8)
+#   8086  AI Assistant  (Python 3.11 / FastAPI + Ollama)
 #   3306  MySQL 8.0
 #   6379  Redis 7.0
 # ─────────────────────────────────────────────────────────────────────────────
@@ -354,6 +355,7 @@ services:
       SEARCH_SERVICE_URL: http://search-service:8083
       PAYMENT_SERVICE_URL: http://payment-service:8084
       AUTH_SERVICE_URL: http://auth-service:8085
+      AI_SERVICE_URL: http://ai-assistant:8086
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
@@ -389,6 +391,7 @@ services:
       - search-service
       - payment-service
       - auth-service
+      - ai-assistant
       - redis
     networks:
       - zylkerkart-network
@@ -398,6 +401,42 @@ services:
       timeout: 5s
       retries: 5
       start_period: 45s
+    restart: unless-stopped
+
+  # 7. AI Assistant — Python 3.11 / FastAPI + local Ollama (port 8086)
+  #    LLM observability: Traceloop → Site24x7 OTLP
+  ai-assistant:
+    build:
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    container_name: zylkerkart-ai-assistant
+    ports:
+      - "8086:8086"
+    environment:
+      PRODUCT_SERVICE_URL: http://product-service:8081
+      ORDER_SERVICE_URL: http://order-service:8082
+      SEARCH_SERVICE_URL: http://search-service:8083
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:latest}
+      OTEL_SERVICE_NAME: zylkerkart-ai-assistant
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-https://otel.site24x7rum.com}
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      AI_MAX_TOOL_ROUNDS: "4"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - product-service
+      - order-service
+      - search-service
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
     restart: unless-stopped
 
 

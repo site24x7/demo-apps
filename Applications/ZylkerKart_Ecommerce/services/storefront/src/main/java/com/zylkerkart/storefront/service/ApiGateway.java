@@ -29,14 +29,16 @@ public class ApiGateway {
             @Value("${services.order.url}") String orderUrl,
             @Value("${services.search.url}") String searchUrl,
             @Value("${services.payment.url}") String paymentUrl,
-            @Value("${services.auth.url}") String authUrl) {
+            @Value("${services.auth.url}") String authUrl,
+            @Value("${services.ai.url}") String aiUrl) {
         this.restTemplate = restTemplate;
         this.serviceUrls = Map.of(
                 "product", productUrl,
                 "order", orderUrl,
                 "search", searchUrl,
                 "payment", paymentUrl,
-                "auth", authUrl
+                "auth", authUrl,
+                "ai", aiUrl
         );
     }
 

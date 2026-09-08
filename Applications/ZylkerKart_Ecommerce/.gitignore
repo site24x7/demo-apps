@@ -21,6 +21,7 @@ Thumbs.db
 services/product-service/target/
 *.class
 *.jar
+!services/storefront/vendor/chaos/*.jar
 
 # Node.js
 node_modules/
