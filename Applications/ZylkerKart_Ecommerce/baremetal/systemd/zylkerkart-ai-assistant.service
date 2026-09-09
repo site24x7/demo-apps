@@ -1,0 +1,47 @@
+# =============================================================================
+# ZylkerKart AI Assistant — Python 3.11 / FastAPI
+# Port: 8086
+# Prerequisites: Python 3.11+
+# =============================================================================
+
+[Unit]
+Description=ZylkerKart AI Assistant (FastAPI)
+Documentation=https://github.com/site24x7/demo-apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zylkerkart
+Group=zylkerkart
+
+WorkingDirectory=/opt/zylkerkart/ai-assistant
+EnvironmentFile=/etc/zylkerkart/ai-assistant.env
+
+ExecStart=/opt/zylkerkart/ai-assistant/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8086
+
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Python-specific
+Environment=PYTHONUNBUFFERED=1
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zylkerkart/ai-assistant /var/site24x7-labs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zylkerkart-ai-assistant
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

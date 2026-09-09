@@ -300,7 +300,77 @@
             .order-dropdown { position: fixed; top: auto; right: 12px; left: 12px; width: auto; max-height: 70vh; border-radius: 10px; }
             .order-dropdown::before { display: none; }
             .od-items-table .od-item-img { width: 28px; height: 28px; }
+            .ai-fab { bottom: 18px; right: 14px; width: 52px; height: 52px; }
+            .ai-panel { width: calc(100vw - 24px); right: 12px; left: 12px; bottom: 78px; height: min(70vh, 560px); }
         }
+
+        /* === AI SHOPPING ASSISTANT === */
+        .ai-fab {
+            position: fixed; bottom: 28px; right: 24px; z-index: 9000;
+            width: 56px; height: 56px; border-radius: 50%; border: none;
+            background: #0073e6; color: #fff; font-size: 22px; font-weight: 700;
+            cursor: pointer; box-shadow: 0 8px 24px rgba(0,115,230,0.35);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .ai-fab:hover { background: #005bb5; transform: scale(1.05); }
+        .ai-panel {
+            position: fixed; bottom: 96px; right: 24px; z-index: 9001;
+            width: 380px; height: 520px; max-height: calc(100vh - 120px);
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 14px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+            display: none; flex-direction: column; overflow: hidden;
+        }
+        .ai-panel.open { display: flex; }
+        .ai-panel-header {
+            padding: 14px 16px; background: #1a1a2e; color: #fff;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .ai-panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; }
+        .ai-panel-header span { display: block; font-size: 11px; color: #9ab; font-weight: 400; margin-top: 2px; }
+        .ai-panel-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; line-height: 1; }
+        .ai-messages { flex: 1; overflow-y: auto; padding: 14px; background: #f5f7fa; }
+        .ai-msg { margin-bottom: 12px; max-width: 92%; }
+        .ai-msg.user { margin-left: auto; }
+        .ai-msg .bubble {
+            padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .ai-msg.bot .bubble { background: #fff; border: 1px solid #e8e8e8; color: #222; border-bottom-left-radius: 4px; }
+        .ai-msg.user .bubble { background: #0073e6; color: #fff; border-bottom-right-radius: 4px; }
+        .ai-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .ai-card {
+            display: flex; gap: 10px; align-items: center; background: #fff;
+            border: 1px solid #e6e6e6; border-radius: 10px; padding: 8px;
+            text-decoration: none; color: inherit; transition: border-color 0.15s;
+        }
+        .ai-card:hover { border-color: #0073e6; }
+        .ai-card img { width: 48px; height: 48px; object-fit: contain; background: #fafafa; border-radius: 6px; }
+        .ai-card .meta { flex: 1; min-width: 0; }
+        .ai-card .meta .t { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ai-card .meta .p { font-size: 12px; color: #0073e6; font-weight: 700; margin-top: 2px; }
+        .ai-card .meta .s { font-size: 11px; color: #888; margin-top: 2px; }
+        .ai-typing { font-size: 12px; color: #888; padding: 4px 2px; display: none; }
+        .ai-typing.show { display: block; }
+        .ai-input-row {
+            display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fff;
+        }
+        .ai-input-row input {
+            flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px;
+            font-size: 13px; outline: none;
+        }
+        .ai-input-row input:focus { border-color: #0073e6; }
+        .ai-input-row button {
+            background: #0073e6; color: #fff; border: none; border-radius: 8px;
+            padding: 0 14px; font-weight: 600; cursor: pointer;
+        }
+        .ai-input-row button:disabled { opacity: 0.5; cursor: default; }
+        .ai-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ai-suggestions button {
+            border: 1px solid #d0d7e2; background: #fff; border-radius: 14px;
+            padding: 5px 10px; font-size: 11px; cursor: pointer; color: #333;
+        }
+        .ai-suggestions button:hover { border-color: #0073e6; color: #0073e6; }
     </style>
 </head>
 <body>
@@ -439,6 +509,32 @@
 
 <!-- Toast Notification -->
 <div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:opacity 0.3s;"></div>
+
+<button type="button" class="ai-fab" id="ai-fab" aria-label="Open shopping assistant" title="Ask ZylkerKart AI">✦</button>
+<div class="ai-panel" id="ai-panel" role="dialog" aria-label="Shopping assistant">
+    <div class="ai-panel-header">
+        <div>
+            <h3>Shopping Assistant</h3>
+            <span>Ask about products, cart, orders &amp; trends</span>
+        </div>
+        <button type="button" class="ai-panel-close" id="ai-close" aria-label="Close">×</button>
+    </div>
+    <div class="ai-messages" id="ai-messages">
+        <div class="ai-msg bot">
+            <div class="bubble">Hi — I’m your ZylkerKart helper. Ask me to find products, check your cart, or show trending searches.</div>
+            <div class="ai-suggestions">
+                <button type="button" data-ai-q="Find popular electronics under $100">Electronics under $100</button>
+                <button type="button" data-ai-q="What’s in my cart?">My cart</button>
+                <button type="button" data-ai-q="Show trending searches">Trending</button>
+            </div>
+        </div>
+    </div>
+    <div class="ai-typing" id="ai-typing">Thinking…</div>
+    <div class="ai-input-row">
+        <input type="text" id="ai-input" placeholder="Ask about products, cart, orders…" maxlength="1000" autocomplete="off">
+        <button type="button" id="ai-send">Send</button>
+    </div>
+</div>
 
 <!-- Logout Confirmation Modal -->
 <div id="logoutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;">
@@ -782,6 +878,215 @@ function toggleOrderAccordion(orderId) {
         });
     }
 }
+
+/* === AI Shopping Assistant === */
+(function() {
+    var panel = document.getElementById('ai-panel');
+    var fab = document.getElementById('ai-fab');
+    var closeBtn = document.getElementById('ai-close');
+    var input = document.getElementById('ai-input');
+    var sendBtn = document.getElementById('ai-send');
+    var messages = document.getElementById('ai-messages');
+    var typing = document.getElementById('ai-typing');
+    if (!panel || !fab) return;
+
+    function openPanel() { panel.classList.add('open'); setTimeout(function(){ input && input.focus(); }, 50); }
+    function closePanel() { panel.classList.remove('open'); }
+    fab.addEventListener('click', function() {
+        if (panel.classList.contains('open')) closePanel(); else openPanel();
+    });
+    closeBtn && closeBtn.addEventListener('click', closePanel);
+
+    document.querySelectorAll('[data-ai-q]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var q = btn.getAttribute('data-ai-q');
+            if (q) sendMessage(q);
+        });
+    });
+
+    function appendMessage(role, text, cards) {
+        var wrap = document.createElement('div');
+        wrap.className = 'ai-msg ' + (role === 'user' ? 'user' : 'bot');
+        var bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = text || '';
+        wrap.appendChild(bubble);
+        if (cards && cards.length) {
+            var list = document.createElement('div');
+            list.className = 'ai-cards';
+            cards.forEach(function(c) {
+                var a = document.createElement('a');
+                a.className = 'ai-card';
+                a.href = c.url || '#';
+                if (c.image) {
+                    var img = document.createElement('img');
+                    img.src = c.image;
+                    img.alt = '';
+                    a.appendChild(img);
+                }
+                var meta = document.createElement('div');
+                meta.className = 'meta';
+                var t = document.createElement('div');
+                t.className = 't';
+                t.textContent = c.title || c.query || ('Order #' + (c.orderId || ''));
+                meta.appendChild(t);
+                if (c.price != null || c.totalAmount != null) {
+                    var p = document.createElement('div');
+                    p.className = 'p';
+                    var priceVal = c.price != null ? c.price : c.totalAmount;
+                    p.textContent = (typeof priceVal === 'number' ? ('$' + priceVal) : String(priceVal));
+                    meta.appendChild(p);
+                }
+                if (c.status || c.quantity || c.count != null || c.itemCount != null) {
+                    var s = document.createElement('div');
+                    s.className = 's';
+                    if (c.status) s.textContent = 'Status: ' + c.status;
+                    else if (c.quantity) s.textContent = 'Qty: ' + c.quantity;
+                    else if (c.count != null) s.textContent = c.count + ' searches';
+                    else if (c.itemCount != null) s.textContent = c.itemCount + ' items · $' + (c.totalAmount || 0);
+                    meta.appendChild(s);
+                }
+                a.appendChild(meta);
+                list.appendChild(a);
+            });
+            wrap.appendChild(list);
+        }
+        messages.appendChild(wrap);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function sendMessage(text) {
+        var msg = (text || '').trim();
+        if (!msg) return;
+        appendMessage('user', msg);
+        if (input) input.value = '';
+        if (sendBtn) sendBtn.disabled = true;
+        if (typing) {
+            typing.classList.add('show');
+            typing.textContent = 'Assistant is thinking…';
+        }
+        hideSuggestions();
+
+        fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+            body: JSON.stringify({
+                message: msg,
+                page_context: window.location.pathname
+            })
+        }).then(function(r) {
+            if (r.status === 429) {
+                return r.text().then(function() {
+                    appendMessage('bot', 'Too many chat requests. Please wait a moment.');
+                });
+            }
+            if (!r.ok || !r.body) {
+                // Fallback to non-streaming endpoint
+                return fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, page_context: window.location.pathname })
+                }).then(function(r2) {
+                    return r2.json().then(function(d) { return { ok: r2.ok, data: d }; });
+                }).then(function(res) {
+                    if (!res.ok) {
+                        appendMessage('bot', (res.data && res.data.error) ? res.data.error : 'Assistant unavailable.');
+                        return;
+                    }
+                    appendMessage('bot', res.data.reply || 'Done.', res.data.cards || []);
+                });
+            }
+            var reader = r.body.getReader();
+            var decoder = new TextDecoder();
+            var buf = '';
+            function pump() {
+                return reader.read().then(function(result) {
+                    if (result.done) return;
+                    buf += decoder.decode(result.value, { stream: true });
+                    var parts = buf.split('\n\n');
+                    buf = parts.pop() || '';
+                    parts.forEach(function(chunk) {
+                        var ev = 'message';
+                        var dataLine = '';
+                        chunk.split('\n').forEach(function(line) {
+                            if (line.indexOf('event:') === 0) ev = line.slice(6).trim();
+                            if (line.indexOf('data:') === 0) dataLine = line.slice(5).trim();
+                        });
+                        if (!dataLine) return;
+                        var data = {};
+                        try { data = JSON.parse(dataLine); } catch (e) { return; }
+                        if (ev === 'status' && typing) {
+                            typing.textContent = data.message || 'Working…';
+                        } else if (ev === 'tool' && typing) {
+                            typing.textContent = 'Using tool: ' + (data.name || '…');
+                        } else if (ev === 'final') {
+                            appendMessage('bot', data.reply || 'Done.', data.cards || []);
+                        } else if (ev === 'error') {
+                            appendMessage('bot', data.error || 'Assistant error');
+                        }
+                    });
+                    return pump();
+                });
+            }
+            return pump();
+        }).catch(function() {
+            appendMessage('bot', 'Could not reach the assistant. Please try again.');
+        }).finally(function() {
+            if (sendBtn) sendBtn.disabled = false;
+            if (typing) {
+                typing.classList.remove('show');
+                typing.textContent = 'Assistant is typing…';
+            }
+        });
+    }
+
+    /* Autocomplete from search suggestions */
+    var suggestBox = document.createElement('div');
+    suggestBox.id = 'ai-suggest';
+    suggestBox.style.cssText = 'display:none;position:absolute;left:12px;right:12px;bottom:58px;background:#fff;border:1px solid #ddd;border-radius:8px;max-height:160px;overflow:auto;z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.08)';
+    var formRow = input && input.parentElement;
+    if (formRow) {
+        formRow.style.position = 'relative';
+        formRow.appendChild(suggestBox);
+    }
+    var suggestTimer = null;
+    function hideSuggestions() { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; }
+    function showSuggestions(items) {
+        suggestBox.innerHTML = '';
+        if (!items || !items.length) { hideSuggestions(); return; }
+        items.forEach(function(s) {
+            var q = (typeof s === 'string') ? s : (s.query || s.text || '');
+            if (!q) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = q;
+            b.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:transparent;cursor:pointer;font:inherit';
+            b.addEventListener('click', function() { hideSuggestions(); sendMessage(q); });
+            suggestBox.appendChild(b);
+        });
+        suggestBox.style.display = 'block';
+    }
+    input && input.addEventListener('input', function() {
+        clearTimeout(suggestTimer);
+        var q = (input.value || '').trim();
+        if (q.length < 2) { hideSuggestions(); return; }
+        suggestTimer = setTimeout(function() {
+            fetch('/api/chat/suggestions?q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    var list = (d && d.suggestions) ? d.suggestions : (Array.isArray(d) ? d : []);
+                    showSuggestions(list.slice(0, 6));
+                })
+                .catch(function() { hideSuggestions(); });
+        }, 200);
+    });
+
+    sendBtn && sendBtn.addEventListener('click', function() { sendMessage(input && input.value); });
+    input && input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); sendMessage(input.value); }
+        if (e.key === 'Escape') hideSuggestions();
+    });
+})();
 </script>
 </body>
 </html>

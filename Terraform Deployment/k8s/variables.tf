@@ -123,6 +123,57 @@ variable "jwt_secret" {
   sensitive   = true
 }
 
+variable "ai_internal_token" {
+  description = "Shared secret for storefront → ai-assistant calls (X-Internal-Token)"
+  type        = string
+  default     = "zylkerkart-ai-internal-dev-token"
+  sensitive   = true
+}
+
+variable "llm_provider" {
+  description = "AI assistant LLM provider: ollama|openai|anthropic|azure|groq|compatible"
+  type        = string
+  default     = "openai"
+}
+
+variable "llm_model" {
+  description = "LLM model (or Azure deployment) name for the AI assistant"
+  type        = string
+  default     = "gpt-4o-mini"
+}
+
+variable "llm_base_url" {
+  description = "Optional LLM API base URL (Ollama, Azure, or OpenAI-compatible gateways)"
+  type        = string
+  default     = ""
+}
+
+variable "llm_api_key" {
+  description = "API key for the selected LLM provider (also used as OPENAI_API_KEY fallback)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "llm_api_version" {
+  description = "Azure OpenAI API version (only used when llm_provider = azure)"
+  type        = string
+  default     = ""
+}
+
+variable "otel_exporter_otlp_endpoint" {
+  description = "Site24x7 OTLP endpoint for AI assistant LLM traces"
+  type        = string
+  default     = "https://otel.site24x7rum.com"
+}
+
+variable "otel_exporter_otlp_headers" {
+  description = "OTLP auth headers (e.g. api-key=<license>). When empty and APM is enabled, derived from site24x7_license_key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # ── Computed locals ──
 locals {
   enable_apm             = var.site24x7_license_key != ""
@@ -134,6 +185,11 @@ locals {
   # ── Site24x7 datacenter-aware base URLs ──
   site24x7_api_base  = "https://www.site24x7.${var.site24x7_datacenter}"
   zoho_accounts_base = var.site24x7_datacenter == "cn" ? "https://accounts.zoho.com.cn" : "https://accounts.zoho.${var.site24x7_datacenter}"
+
+  # LLM OTLP headers: explicit override, else api-key from APM license when enabled
+  effective_otel_headers = var.otel_exporter_otlp_headers != "" ? var.otel_exporter_otlp_headers : (
+    local.enable_apm ? "api-key=${var.site24x7_license_key}" : ""
+  )
 }
 
 variable "apm_app_name_prefix" {
@@ -145,7 +201,7 @@ variable "apm_app_name_prefix" {
 variable "expected_app_count" {
   description = "Number of APM applications expected to register before proceeding"
   type        = number
-  default     = 6
+  default     = 7
 }
 
 variable "site24x7_platform" {

@@ -1,14 +1,15 @@
 # ZylkerKart - Kubernetes Deployment with Terraform
 
-ZylkerKart is a polyglot microservices e-commerce platform deployed to **AWS EKS** or **Azure AKS** using Terraform. The project provisions cloud infrastructure, deploys six application microservices written in five languages, and optionally integrates Site24x7 for APM and chaos engineering.
+ZylkerKart is a polyglot microservices e-commerce platform deployed to **AWS EKS** or **Azure AKS** using Terraform. The project provisions cloud infrastructure, deploys seven application microservices written in five languages, and optionally integrates Site24x7 for APM, LLM observability, and chaos engineering.
 
 **Key features:**
 
 - **Multi-cloud** -- deploy to AWS EKS or Azure AKS with a single variable toggle
-- **6 microservices** in Java, Node.js, Go, Python, and C#/.NET
+- **7 microservices** in Java, Node.js, Go, Python, and C#/.NET (including an AI shopping assistant)
 - **NGINX Ingress Controller** with path-based routing to all services
 - **MySQL** (persistent) and **Redis** (in-memory cache) backing stores
 - **Site24x7 APM** with language-specific agents (optional)
+- **Site24x7 LLM observability** for the AI assistant via OTLP / Traceloop (optional)
 - **Site24x7 Labs chaos engineering** agent with fault injection SDK (optional)
 
 ---
@@ -46,7 +47,9 @@ graph TD
     Ingress -->|"/api/payments"| Pay["Payment Service<br/>Python 3.11 / FastAPI<br/>:8084"]
     Ingress -->|"/api/auth"| Auth["Auth Service<br/>C# / .NET 8<br/>:8085"]
 
+    SF -->|"/api/chat (internal)"| AI["AI Assistant<br/>Python 3.11 / FastAPI<br/>:8086 ClusterIP"]
     SF --> PS & OS & SS & Pay & Auth
+    AI --> PS & OS & SS
 
     PS & OS & SS & Pay & Auth --> MySQL["MySQL<br/>:3306"]
     PS & OS & SS & Pay & SF --> Redis["Redis 7.0<br/>:6379"]
@@ -62,6 +65,7 @@ graph TD
 | **search-service** | Go 1.21 / Gin | 8083 | `db_search` | Go (eBPF DaemonSet) |
 | **payment-service** | Python 3.11 / FastAPI | 8084 | `db_payment` | Python (init container) |
 | **auth-service** | C# / .NET 8 | 8085 | `db_auth` | .NET (init container) |
+| **ai-assistant** | Python 3.11 / FastAPI + LiteLLM | 8086 | -- | Python (init) + OTLP LLM traces |
 
 ---
 
@@ -201,6 +205,14 @@ The `cloud_provider` variable controls which cloud infrastructure is provisioned
 | `image_tag` | `string` | `"latest"` | No | Docker image tag for all microservices |
 | `mysql_root_password` | `string` | `"ZylkerKart@2024"` | **Yes** | MySQL root password |
 | `jwt_secret` | `string` | *(64-char default)* | **Yes** | JWT signing secret (minimum 32 characters) |
+| `ai_internal_token` | `string` | *(dev default)* | **Yes** | Shared secret for storefront → ai-assistant |
+| `llm_provider` | `string` | `"openai"` | No | LLM provider for ai-assistant |
+| `llm_model` | `string` | `"gpt-4o-mini"` | No | Model / Azure deployment name |
+| `llm_api_key` | `string` | `""` | **Yes** | LLM provider API key |
+| `llm_base_url` | `string` | `""` | No | Optional API base URL |
+| `llm_api_version` | `string` | `""` | No | Azure OpenAI API version |
+| `otel_exporter_otlp_endpoint` | `string` | `"https://otel.site24x7rum.com"` | No | Site24x7 OTLP endpoint for LLM traces |
+| `otel_exporter_otlp_headers` | `string` | `""` | **Yes** | OTLP headers; defaults to `api-key=<license>` when APM enabled |
 
 #### Site24x7 APM
 
@@ -208,7 +220,7 @@ The `cloud_provider` variable controls which cloud infrastructure is provisioned
 |----------|------|---------|-----------|-------------|
 | `site24x7_license_key` | `string` | `""` | **Yes** | Site24x7 license key. Leave empty to disable APM. |
 | `apm_app_name_prefix` | `string` | `"ZylkerKart-"` | No | Filter prefix for APM monitor management |
-| `expected_app_count` | `number` | `6` | No | Number of APM apps expected to register |
+| `expected_app_count` | `number` | `7` | No | Number of APM apps expected to register (includes AI assistant) |
 
 #### Site24x7 Chaos Engineering
 
@@ -325,6 +337,9 @@ kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.
 | `/api/search` | search-service | 8083 |
 | `/api/payments` | payment-service | 8084 |
 | `/api/auth` | auth-service | 8085 |
+| `/api/chat` | storefront → ai-assistant (ClusterIP) | 8086 |
+
+> **Note:** `ai-assistant` is **not** exposed on the ingress. The storefront proxies `/api/chat` over the cluster network with `X-Internal-Token`.
 
 Test the application:
 
@@ -357,6 +372,11 @@ When APM is enabled, each microservice is instrumented with a language-specific 
 | search-service | Go Agent | DaemonSet exporter (eBPF-based) | `ZylkerKart-SearchService` |
 | payment-service | Python Agent | Init container (`site24x7/apminsight-pythonagent`) | `ZylkerKart-PaymentService` |
 | auth-service | .NET Agent | Init container (`site24x7/apminsight-dotnetagent`) | `ZylkerKart-AuthService` |
+| ai-assistant | Python Agent + Traceloop OTLP | Init container + `OTEL_EXPORTER_OTLP_*` → `otel.site24x7rum.com` | `ZylkerKart-AIAssistant` |
+
+When APM is enabled, Terraform waits for **7** APM applications (see `expected_app_count`) and sets `OTEL_EXPORTER_OTLP_HEADERS=api-key=<license>` for LLM trace export unless you override `otel_exporter_otlp_headers`.
+
+Configure the LLM for cluster deploys via `llm_provider`, `llm_model`, and `llm_api_key` (defaults: OpenAI / `gpt-4o-mini`).
 
 ### Server Monitoring
 
@@ -388,7 +408,7 @@ The Site24x7 Labs chaos engineering agent is deployed as a DaemonSet in the `sit
 
 1. During `terraform apply`, a provisioner authenticates to the Site24x7 Labs API, creates an environment, and obtains an agent token
 2. The chaos agent DaemonSet is deployed with the token, running privileged with access to host PID namespace and cgroup filesystem
-3. All six application pods have `CHAOS_SDK_ENABLED=true` set and mount a shared fault configuration directory (`/var/site24x7-labs/faults`) via a hostPath volume
+3. All application pods have `CHAOS_SDK_ENABLED=true` set and mount a shared fault configuration directory (`/var/site24x7-labs/faults`) via a hostPath volume (including `ai-assistant`)
 4. Chaos experiments initiated through Site24x7 Labs write fault configurations to the shared volume, which the application chaos SDKs read and apply
 
 ### Configuration

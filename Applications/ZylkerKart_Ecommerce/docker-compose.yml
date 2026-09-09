@@ -10,6 +10,7 @@ version: "3.9"
 #   8083  Search        (Go 1.21 / Gin)
 #   8084  Payment       (Python 3.11 / FastAPI)
 #   8085  Auth          (C# / .NET 8)
+#   8086  AI Assistant  (Python 3.11 / FastAPI + Ollama)
 #   3306  MySQL 8.0
 #   6379  Redis 7.0
 # ─────────────────────────────────────────────────────────────────────────────
@@ -354,6 +355,8 @@ services:
       SEARCH_SERVICE_URL: http://search-service:8083
       PAYMENT_SERVICE_URL: http://payment-service:8084
       AUTH_SERVICE_URL: http://auth-service:8085
+      AI_SERVICE_URL: http://ai-assistant:8086
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-zylkerkart-ai-internal-dev-token}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S247_APM_ENABLED: ${S247_APM_ENABLED:-false}
@@ -389,6 +392,7 @@ services:
       - search-service
       - payment-service
       - auth-service
+      - ai-assistant
       - redis
     networks:
       - zylkerkart-network
@@ -398,6 +402,64 @@ services:
       timeout: 5s
       retries: 5
       start_period: 45s
+    restart: unless-stopped
+
+  # 7. AI Assistant — Python 3.11 / FastAPI + pluggable LLM (LiteLLM)
+  #    LLM observability: Traceloop → Site24x7 OTLP
+  #    Not published to the host — reachable only via the Docker network (storefront).
+  #    Providers: set LLM_PROVIDER=ollama|openai|anthropic|azure|groq|compatible
+  ai-assistant:
+    build:
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    container_name: zylkerkart-ai-assistant
+    user: "0:0"
+    expose:
+      - "8086"
+    environment:
+      PRODUCT_SERVICE_URL: http://product-service:8081
+      ORDER_SERVICE_URL: http://order-service:8082
+      SEARCH_SERVICE_URL: http://search-service:8083
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-gemma4:latest}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_VERSION: ${LLM_API_VERSION:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:latest}
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-zylkerkart-ai-internal-dev-token}
+      OTEL_SERVICE_NAME: zylkerkart-ai-assistant
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-https://otel.site24x7rum.com}
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      AI_MAX_TOOL_ROUNDS: "4"
+      CHAOS_SDK_ENABLED: ${CHAOS_SDK_ENABLED:-true}
+      CHAOS_SDK_APP_NAME: ai-assistant
+      CHAOS_SDK_CONFIG_DIR: /var/site24x7-labs/faults
+    volumes:
+      - /var/site24x7-labs/faults:/var/site24x7-labs/faults
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - product-service
+      - order-service
+      - search-service
+      - redis
+    networks:
+      - zylkerkart-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
     restart: unless-stopped
 
 
