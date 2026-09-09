@@ -49,22 +49,31 @@ resource "kubernetes_config_map" "zylkerkart_config" {
   }
 
   data = {
-    MYSQL_ROOT_PASSWORD     = var.mysql_root_password
-    DB_HOST                 = "mysql"
-    DB_PORT                 = "3306"
-    DB_USER                 = "root"
-    REDIS_HOST              = "redis"
-    REDIS_PORT              = "6379"
-    JWT_SECRET              = var.jwt_secret
-    JWT_EXPIRY_MINUTES      = "15"
-    JWT_REFRESH_EXPIRY_DAYS = "7"
-    PRODUCT_SERVICE_URL     = "http://product-service:8081"
-    ORDER_SERVICE_URL       = "http://order-service:8082"
-    SEARCH_SERVICE_URL      = "http://search-service:8083"
-    PAYMENT_SERVICE_URL     = "http://payment-service:8084"
-    AUTH_SERVICE_URL        = "http://auth-service:8085"
-    STOREFRONT_URL          = "http://storefront:80"
-    S247_LICENSE_KEY        = local.enable_apm ? var.site24x7_license_key : "<your-site24x7-license-key>"
+    MYSQL_ROOT_PASSWORD         = var.mysql_root_password
+    DB_HOST                     = "mysql"
+    DB_PORT                     = "3306"
+    DB_USER                     = "root"
+    REDIS_HOST                  = "redis"
+    REDIS_PORT                  = "6379"
+    JWT_SECRET                  = var.jwt_secret
+    JWT_EXPIRY_MINUTES          = "15"
+    JWT_REFRESH_EXPIRY_DAYS     = "7"
+    PRODUCT_SERVICE_URL         = "http://product-service:8081"
+    ORDER_SERVICE_URL           = "http://order-service:8082"
+    SEARCH_SERVICE_URL          = "http://search-service:8083"
+    PAYMENT_SERVICE_URL         = "http://payment-service:8084"
+    AUTH_SERVICE_URL            = "http://auth-service:8085"
+    AI_SERVICE_URL              = "http://ai-assistant:8086"
+    AI_INTERNAL_TOKEN           = var.ai_internal_token
+    STOREFRONT_URL              = "http://storefront:80"
+    S247_LICENSE_KEY            = local.enable_apm ? var.site24x7_license_key : "<your-site24x7-license-key>"
+    OTEL_EXPORTER_OTLP_ENDPOINT = var.otel_exporter_otlp_endpoint
+    OTEL_EXPORTER_OTLP_HEADERS  = local.effective_otel_headers
+    LLM_PROVIDER                = var.llm_provider
+    LLM_MODEL                   = var.llm_model
+    LLM_BASE_URL                = var.llm_base_url
+    LLM_API_KEY                 = var.llm_api_key
+    LLM_API_VERSION             = var.llm_api_version
   }
 }
 
@@ -1402,6 +1411,302 @@ resource "kubernetes_service" "auth_service" {
   }
 }
 
+# ── AI Assistant (Python 3.11 / FastAPI — port 8086, ClusterIP only) ──
+# APM Insight via Python agent init container + LLM traces via Traceloop → Site24x7 OTLP
+resource "kubernetes_deployment" "ai_assistant" {
+  metadata {
+    name      = "ai-assistant"
+    namespace = kubernetes_namespace.zylkerkart.metadata[0].name
+    labels    = { app = "ai-assistant", tier = "backend" }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = { app = "ai-assistant" }
+    }
+
+    template {
+      metadata {
+        labels = { app = "ai-assistant", tier = "backend" }
+      }
+      spec {
+        enable_service_links = false
+
+        volume {
+          name = "s247agent"
+          empty_dir {}
+        }
+
+        volume {
+          name = "apm-data"
+          empty_dir {}
+        }
+
+        volume {
+          name = "chaos-config"
+          host_path {
+            path = "/var/site24x7-labs/faults"
+            type = "DirectoryOrCreate"
+          }
+        }
+
+        init_container {
+          name    = "s247-python-agent"
+          image   = "site24x7/apminsight-pythonagent:latest"
+          command = ["sh", "-c", "cp -r /opt/site24x7/. /home/apm && chmod -R 777 /home/apm"]
+          volume_mount {
+            name       = "s247agent"
+            mount_path = "/home/apm"
+          }
+        }
+
+        container {
+          name              = "ai-assistant"
+          image_pull_policy = "Always"
+          image             = "${var.docker_registry}/ai-assistant:${var.image_tag}"
+          command           = ["/bin/sh", "-c", "/home/apm/agent_start.sh"]
+
+          port {
+            container_port = 8086
+          }
+
+          volume_mount {
+            name       = "s247agent"
+            mount_path = "/home/apm"
+          }
+          volume_mount {
+            name       = "apm-data"
+            mount_path = "/app/apminsightdata"
+          }
+          volume_mount {
+            name       = "chaos-config"
+            mount_path = "/var/site24x7-labs/faults"
+          }
+
+          env {
+            name  = "APP_RUN_COMMAND"
+            value = "uvicorn app.main:app --host 0.0.0.0 --port 8086 --workers 1"
+          }
+          env {
+            name  = "APM_APP_NAME"
+            value = "ZylkerKart-AIAssistant${local.ticket_suffix}"
+          }
+          env {
+            name = "S247_LICENSE_KEY"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "S247_LICENSE_KEY"
+              }
+            }
+          }
+          env {
+            name  = "PORT"
+            value = "8086"
+          }
+          env {
+            name = "PRODUCT_SERVICE_URL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "PRODUCT_SERVICE_URL"
+              }
+            }
+          }
+          env {
+            name = "ORDER_SERVICE_URL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "ORDER_SERVICE_URL"
+              }
+            }
+          }
+          env {
+            name = "SEARCH_SERVICE_URL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "SEARCH_SERVICE_URL"
+              }
+            }
+          }
+          env {
+            name = "LLM_PROVIDER"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_PROVIDER"
+              }
+            }
+          }
+          env {
+            name = "LLM_MODEL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_MODEL"
+              }
+            }
+          }
+          env {
+            name = "LLM_BASE_URL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_BASE_URL"
+              }
+            }
+          }
+          env {
+            name = "LLM_API_KEY"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_API_KEY"
+              }
+            }
+          }
+          env {
+            name = "LLM_API_VERSION"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_API_VERSION"
+              }
+            }
+          }
+          env {
+            name = "OPENAI_API_KEY"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "LLM_API_KEY"
+              }
+            }
+          }
+          env {
+            name = "AI_INTERNAL_TOKEN"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "AI_INTERNAL_TOKEN"
+              }
+            }
+          }
+          env {
+            name  = "OTEL_SERVICE_NAME"
+            value = "ZylkerKart-AIAssistant${local.ticket_suffix}"
+          }
+          env {
+            name = "OTEL_EXPORTER_OTLP_ENDPOINT"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+              }
+            }
+          }
+          env {
+            name  = "OTEL_EXPORTER_OTLP_PROTOCOL"
+            value = "http/protobuf"
+          }
+          env {
+            name = "OTEL_EXPORTER_OTLP_HEADERS"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "OTEL_EXPORTER_OTLP_HEADERS"
+              }
+            }
+          }
+          env {
+            name  = "AI_MAX_TOOL_ROUNDS"
+            value = "4"
+          }
+          env {
+            name  = "REDIS_HOST"
+            value = "redis"
+          }
+          env {
+            name  = "REDIS_PORT"
+            value = "6379"
+          }
+          env {
+            name  = "CHAOS_SDK_ENABLED"
+            value = "true"
+          }
+          env {
+            name  = "CHAOS_SDK_APP_NAME"
+            value = "ai-assistant"
+          }
+          env {
+            name  = "CHAOS_SDK_CONFIG_DIR"
+            value = "/var/site24x7-labs/faults"
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/health"
+              port = 8086
+            }
+            initial_delay_seconds = 45
+            period_seconds        = 10
+            failure_threshold     = 30
+            timeout_seconds       = 5
+          }
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = 8086
+            }
+            initial_delay_seconds = 60
+            period_seconds        = 20
+            failure_threshold     = 10
+          }
+          resources {
+            requests = { memory = "256Mi", cpu = "100m" }
+            limits   = { memory = "1Gi", cpu = "500m" }
+          }
+        }
+      }
+    }
+  }
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+
+  wait_for_rollout = false
+
+  depends_on = [
+    kubernetes_deployment.product_service,
+    kubernetes_service.product_service,
+    kubernetes_deployment.order_service,
+    kubernetes_service.order_service,
+    kubernetes_deployment.search_service,
+    kubernetes_service.search_service,
+    kubernetes_deployment.redis,
+    kubernetes_service.redis,
+  ]
+}
+
+resource "kubernetes_service" "ai_assistant" {
+  metadata {
+    name      = "ai-assistant"
+    namespace = kubernetes_namespace.zylkerkart.metadata[0].name
+  }
+  spec {
+    selector = { app = "ai-assistant" }
+    port {
+      port        = 8086
+      target_port = 8086
+    }
+  }
+}
+
 # ── Storefront BFF (Java 17 / Spring Boot 3.2 — port 80) ──
 resource "kubernetes_deployment" "storefront" {
   metadata {
@@ -1549,6 +1854,24 @@ resource "kubernetes_deployment" "storefront" {
             }
           }
           env {
+            name = "AI_SERVICE_URL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "AI_SERVICE_URL"
+              }
+            }
+          }
+          env {
+            name = "AI_INTERNAL_TOKEN"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.zylkerkart_config.metadata[0].name
+                key  = "AI_INTERNAL_TOKEN"
+              }
+            }
+          }
+          env {
             name  = "CHAOS_SDK_ENABLED"
             value = "true"
           }
@@ -1612,6 +1935,8 @@ resource "kubernetes_deployment" "storefront" {
     kubernetes_service.mysql,
     kubernetes_deployment.redis,
     kubernetes_service.redis,
+    kubernetes_deployment.ai_assistant,
+    kubernetes_service.ai_assistant,
   ]
 }
 
@@ -2021,6 +2346,7 @@ resource "kubernetes_daemonset" "go_apm_exporter" {
     kubernetes_deployment.search_service,
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
+    kubernetes_deployment.ai_assistant,
     kubernetes_deployment.storefront,
   ]
 }
@@ -2374,6 +2700,7 @@ resource "kubernetes_daemonset" "site24x7_agent" {
     kubernetes_deployment.search_service,
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
+    kubernetes_deployment.ai_assistant,
     kubernetes_deployment.storefront,
   ]
 }
@@ -2634,6 +2961,7 @@ resource "kubernetes_deployment" "site24x7_ksm" {
     kubernetes_deployment.search_service,
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
+    kubernetes_deployment.ai_assistant,
     kubernetes_deployment.storefront,
   ]
 }
@@ -2652,6 +2980,7 @@ resource "terraform_data" "k8s_ready" {
     kubernetes_deployment.product_service,
     kubernetes_deployment.payment_service,
     kubernetes_deployment.auth_service,
+    kubernetes_deployment.ai_assistant,
     # Ingress controller + routing
     helm_release.ingress_nginx,
     kubernetes_ingress_v1.zylkerkart,

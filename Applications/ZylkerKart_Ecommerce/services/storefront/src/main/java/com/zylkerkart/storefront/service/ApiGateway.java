@@ -2,6 +2,7 @@ package com.zylkerkart.storefront.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,12 @@ public class ApiGateway {
     private static final Logger log = LoggerFactory.getLogger(ApiGateway.class);
 
     private final RestTemplate restTemplate;
+    private final RestTemplate aiRestTemplate;
     private final Map<String, String> serviceUrls;
 
     public ApiGateway(
             RestTemplate restTemplate,
+            @Qualifier("aiRestTemplate") RestTemplate aiRestTemplate,
             @Value("${services.product.url}") String productUrl,
             @Value("${services.order.url}") String orderUrl,
             @Value("${services.search.url}") String searchUrl,
@@ -32,6 +35,7 @@ public class ApiGateway {
             @Value("${services.auth.url}") String authUrl,
             @Value("${services.ai.url}") String aiUrl) {
         this.restTemplate = restTemplate;
+        this.aiRestTemplate = aiRestTemplate;
         this.serviceUrls = Map.of(
                 "product", productUrl,
                 "order", orderUrl,
@@ -40,6 +44,10 @@ public class ApiGateway {
                 "auth", authUrl,
                 "ai", aiUrl
         );
+    }
+
+    private RestTemplate clientFor(String service) {
+        return "ai".equals(service) ? aiRestTemplate : restTemplate;
     }
 
     /**
@@ -54,7 +62,7 @@ public class ApiGateway {
                 headers.setBearerAuth(token);
             }
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object.class);
+            ResponseEntity<Object> response = clientFor(service).exchange(url, HttpMethod.GET, entity, Object.class);
             Map<String, Object> result = new HashMap<>();
             result.put("status", response.getStatusCode().value());
             result.put("data", response.getBody());
@@ -104,7 +112,7 @@ public class ApiGateway {
                 extraHeaders.forEach(headers::set);
             }
             HttpEntity<Object> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.POST, entity, Object.class);
+            ResponseEntity<Object> response = clientFor(service).exchange(url, HttpMethod.POST, entity, Object.class);
             Map<String, Object> result = new HashMap<>();
             result.put("status", response.getStatusCode().value());
             result.put("data", response.getBody());
@@ -137,7 +145,7 @@ public class ApiGateway {
                 headers.setBearerAuth(token);
             }
             HttpEntity<Object> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Object.class);
+            ResponseEntity<Object> response = clientFor(service).exchange(url, HttpMethod.PUT, entity, Object.class);
             Map<String, Object> result = new HashMap<>();
             result.put("status", response.getStatusCode().value());
             result.put("data", response.getBody());
@@ -165,7 +173,7 @@ public class ApiGateway {
                 headers.setBearerAuth(token);
             }
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Object.class);
+            ResponseEntity<Object> response = clientFor(service).exchange(url, HttpMethod.DELETE, entity, Object.class);
             Map<String, Object> result = new HashMap<>();
             result.put("status", response.getStatusCode().value());
             result.put("data", response.getBody());

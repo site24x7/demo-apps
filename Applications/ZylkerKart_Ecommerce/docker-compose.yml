@@ -413,12 +413,15 @@ services:
       context: ./services/ai-assistant
       dockerfile: Dockerfile
     container_name: zylkerkart-ai-assistant
+    user: "0:0"
     expose:
       - "8086"
     environment:
       PRODUCT_SERVICE_URL: http://product-service:8081
       ORDER_SERVICE_URL: http://order-service:8082
       SEARCH_SERVICE_URL: http://search-service:8083
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       LLM_MODEL: ${LLM_MODEL:-gemma4:latest}
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
@@ -437,12 +440,18 @@ services:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
       AI_MAX_TOOL_ROUNDS: "4"
+      CHAOS_SDK_ENABLED: ${CHAOS_SDK_ENABLED:-true}
+      CHAOS_SDK_APP_NAME: ai-assistant
+      CHAOS_SDK_CONFIG_DIR: /var/site24x7-labs/faults
+    volumes:
+      - /var/site24x7-labs/faults:/var/site24x7-labs/faults
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - product-service
       - order-service
       - search-service
+      - redis
     networks:
       - zylkerkart-network
     healthcheck:

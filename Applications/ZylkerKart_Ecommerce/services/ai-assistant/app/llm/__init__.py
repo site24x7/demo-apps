@@ -1,7 +1,7 @@
 """Pluggable LLM providers backed by LiteLLM."""
 
 from app.llm.base import ChatResult, LLMError, LLMProvider, ToolCall
-from app.llm.registry import available_providers, get_provider
+from app.llm.registry import available_providers, clear_provider_cache, get_provider
 
 __all__ = [
     "ChatResult",
@@ -9,5 +9,6 @@ __all__ = [
     "LLMProvider",
     "ToolCall",
     "available_providers",
+    "clear_provider_cache",
     "get_provider",
 ]

@@ -12,3 +12,19 @@ Default provider is **Ollama** on the host. Switch without code changes via env.
 | OpenAI-compatible | `compatible` | `LLM_BASE_URL`, `LLM_MODEL`, optional `LLM_API_KEY` |
 
 Backed by [LiteLLM](https://github.com/BerriAI/litellm). Agent code depends only on `LLMProvider.complete()`.
+
+## Observability & chaos
+
+- **LLM traces:** Traceloop → Site24x7 OTLP (`OTEL_EXPORTER_OTLP_*`)
+- **Chaos:** same FastAPI SDK as payment-service (`site24x7-chaos[fastapi]`, `CHAOS_SDK_*`)
+
+## Endpoints
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/health` | Includes LLM provider probe (Ollama `/api/tags`) |
+| POST | `/chat` | JSON reply + cards (requires `X-Internal-Token`) |
+| POST | `/chat/stream` | SSE progress + final payload |
+| POST | `/reload` | Clear/retry provider cache |
+
+Conversation history (last N turns) is stored in Redis when `REDIS_HOST` is set.

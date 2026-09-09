@@ -18,7 +18,17 @@ node_count         = 3
 # App
 docker_registry      = "zylkerkart"
 image_tag            = "latest"
-site24x7_license_key = ""   # Set to enable APM
+site24x7_license_key = ""   # Set to enable APM + LLM OTLP headers
 site24x7_datacenter  = "eu" # com, eu, cn, in, com.au
 mysql_root_password  = "ZylkerKart@2024"
 jwt_secret           = "ZylkerKart-Super-Secret-JWT-Key-2024-Must-Be-At-Least-32-Chars"
+
+# AI assistant (LLM + Site24x7 LLM observability)
+# ai_internal_token = "zylkerkart-ai-internal-dev-token"
+# llm_provider      = "openai"          # ollama|openai|anthropic|azure|groq|compatible
+# llm_model         = "gpt-4o-mini"
+# llm_api_key       = ""                # required for cloud providers
+# llm_base_url      = ""                # Ollama / Azure / compatible gateways
+# otel_exporter_otlp_endpoint = "https://otel.site24x7rum.com"
+# otel_exporter_otlp_headers  = ""      # defaults to api-key=<license> when APM enabled
+# expected_app_count = 7                # includes ZylkerKart-AIAssistant

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 import os
 from typing import Any
@@ -16,12 +17,21 @@ ORDER_URL = os.environ.get("ORDER_SERVICE_URL", "http://order-service:8082")
 SEARCH_URL = os.environ.get("SEARCH_SERVICE_URL", "http://search-service:8083")
 TIMEOUT = float(os.environ.get("TOOL_HTTP_TIMEOUT", "12"))
 
+# Shared client for connection pooling across tool calls in the same process.
+_http = httpx.Client(timeout=TIMEOUT)
+atexit.register(_http.close)
+
 
 def _get(url: str, params: dict[str, Any] | None = None) -> Any:
-    with httpx.Client(timeout=TIMEOUT) as client:
-        resp = client.get(url, params=params)
-        resp.raise_for_status()
-        return resp.json()
+    resp = _http.get(url, params=params)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _post(url: str, body: dict[str, Any]) -> Any:
+    resp = _http.post(url, json=body)
+    resp.raise_for_status()
+    return resp.json()
 
 
 @tool(name="search_products")
@@ -69,6 +79,29 @@ def get_cart(session_id: str) -> dict[str, Any]:
     if not session_id:
         return {"items": [], "itemCount": 0, "totalAmount": 0, "error": "missing session_id"}
     return _get(f"{ORDER_URL}/cart/{session_id}")
+
+
+@tool(name="add_to_cart")
+def add_to_cart(
+    session_id: str,
+    product_id: int,
+    title: str,
+    price: float,
+    quantity: int = 1,
+    image: str | None = None,
+) -> dict[str, Any]:
+    if not session_id:
+        return {"error": "missing session_id"}
+    body: dict[str, Any] = {
+        "sessionId": session_id,
+        "productId": product_id,
+        "title": title,
+        "price": price,
+        "quantity": max(1, int(quantity or 1)),
+    }
+    if image:
+        body["image"] = image
+    return _post(f"{ORDER_URL}/cart/add", body)
 
 
 @tool(name="get_user_orders")
@@ -131,6 +164,28 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "add_to_cart",
+            "description": (
+                "Add a product to the current shopper's cart. "
+                "Use productId, title, and price from a prior search/get_product result. "
+                "Do not invent prices."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "product_id": {"type": "integer"},
+                    "title": {"type": "string"},
+                    "price": {"type": "number"},
+                    "quantity": {"type": "integer", "description": "Defaults to 1"},
+                    "image": {"type": "string"},
+                },
+                "required": ["product_id", "title", "price"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_user_orders",
             "description": "List recent orders for the currently authenticated shopper on this request. Do not invent or supply a user id.",
             "parameters": {
@@ -167,11 +222,19 @@ def execute_tool(name: str, args: dict[str, Any], context: dict[str, Any]) -> An
         if name == "get_product":
             return get_product(int(args["product_id"]))
         if name == "get_cart":
-            # Always bind to server-provided session; ignore model-supplied ids
             sid = context.get("session_id") or ""
             return get_cart(sid)
+        if name == "add_to_cart":
+            sid = context.get("session_id") or ""
+            return add_to_cart(
+                session_id=sid,
+                product_id=int(args["product_id"]),
+                title=str(args.get("title") or ""),
+                price=float(args["price"]),
+                quantity=int(args.get("quantity", 1)),
+                image=args.get("image"),
+            )
         if name == "get_user_orders":
-            # Always bind to server-provided user; ignore model-supplied ids
             uid = context.get("user_id") or ""
             return get_user_orders(uid)
         if name == "get_trending":
@@ -214,7 +277,7 @@ def build_cards(tool_name: str, result: Any) -> list[dict[str, Any]]:
                 "url": f"/products/{result.get('productId')}",
             }
         )
-    elif tool_name == "get_cart":
+    elif tool_name in ("get_cart", "add_to_cart"):
         for item in result.get("items") or []:
             cards.append(
                 {

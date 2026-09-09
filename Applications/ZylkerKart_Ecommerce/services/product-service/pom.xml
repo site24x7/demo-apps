@@ -85,6 +85,11 @@
             <artifactId>chaos-sdk-spring-boot-3</artifactId>
             <version>1.1.2</version>
         </dependency>
+        <!-- Required by Chaos SDK ConfigFileWatcher -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
     </dependencies>
 
     <repositories>

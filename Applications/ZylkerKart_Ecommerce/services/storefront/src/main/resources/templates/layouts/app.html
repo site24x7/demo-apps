@@ -961,34 +961,130 @@ function toggleOrderAccordion(orderId) {
         appendMessage('user', msg);
         if (input) input.value = '';
         if (sendBtn) sendBtn.disabled = true;
-        if (typing) typing.classList.add('show');
-        fetch('/api/chat', {
+        if (typing) {
+            typing.classList.add('show');
+            typing.textContent = 'Assistant is thinking…';
+        }
+        hideSuggestions();
+
+        fetch('/api/chat/stream', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
             body: JSON.stringify({
                 message: msg,
                 page_context: window.location.pathname
             })
-        }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
-          .then(function(res) {
-            if (!res.ok) {
-                appendMessage('bot', (res.data && res.data.error) ? res.data.error : 'Assistant unavailable. Please try again.');
-                return;
+        }).then(function(r) {
+            if (r.status === 429) {
+                return r.text().then(function() {
+                    appendMessage('bot', 'Too many chat requests. Please wait a moment.');
+                });
             }
-            appendMessage('bot', res.data.reply || 'Done.', res.data.cards || []);
-          })
-          .catch(function() {
+            if (!r.ok || !r.body) {
+                // Fallback to non-streaming endpoint
+                return fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, page_context: window.location.pathname })
+                }).then(function(r2) {
+                    return r2.json().then(function(d) { return { ok: r2.ok, data: d }; });
+                }).then(function(res) {
+                    if (!res.ok) {
+                        appendMessage('bot', (res.data && res.data.error) ? res.data.error : 'Assistant unavailable.');
+                        return;
+                    }
+                    appendMessage('bot', res.data.reply || 'Done.', res.data.cards || []);
+                });
+            }
+            var reader = r.body.getReader();
+            var decoder = new TextDecoder();
+            var buf = '';
+            function pump() {
+                return reader.read().then(function(result) {
+                    if (result.done) return;
+                    buf += decoder.decode(result.value, { stream: true });
+                    var parts = buf.split('\n\n');
+                    buf = parts.pop() || '';
+                    parts.forEach(function(chunk) {
+                        var ev = 'message';
+                        var dataLine = '';
+                        chunk.split('\n').forEach(function(line) {
+                            if (line.indexOf('event:') === 0) ev = line.slice(6).trim();
+                            if (line.indexOf('data:') === 0) dataLine = line.slice(5).trim();
+                        });
+                        if (!dataLine) return;
+                        var data = {};
+                        try { data = JSON.parse(dataLine); } catch (e) { return; }
+                        if (ev === 'status' && typing) {
+                            typing.textContent = data.message || 'Working…';
+                        } else if (ev === 'tool' && typing) {
+                            typing.textContent = 'Using tool: ' + (data.name || '…');
+                        } else if (ev === 'final') {
+                            appendMessage('bot', data.reply || 'Done.', data.cards || []);
+                        } else if (ev === 'error') {
+                            appendMessage('bot', data.error || 'Assistant error');
+                        }
+                    });
+                    return pump();
+                });
+            }
+            return pump();
+        }).catch(function() {
             appendMessage('bot', 'Could not reach the assistant. Please try again.');
-          })
-          .finally(function() {
+        }).finally(function() {
             if (sendBtn) sendBtn.disabled = false;
-            if (typing) typing.classList.remove('show');
-          });
+            if (typing) {
+                typing.classList.remove('show');
+                typing.textContent = 'Assistant is typing…';
+            }
+        });
     }
+
+    /* Autocomplete from search suggestions */
+    var suggestBox = document.createElement('div');
+    suggestBox.id = 'ai-suggest';
+    suggestBox.style.cssText = 'display:none;position:absolute;left:12px;right:12px;bottom:58px;background:#fff;border:1px solid #ddd;border-radius:8px;max-height:160px;overflow:auto;z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.08)';
+    var formRow = input && input.parentElement;
+    if (formRow) {
+        formRow.style.position = 'relative';
+        formRow.appendChild(suggestBox);
+    }
+    var suggestTimer = null;
+    function hideSuggestions() { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; }
+    function showSuggestions(items) {
+        suggestBox.innerHTML = '';
+        if (!items || !items.length) { hideSuggestions(); return; }
+        items.forEach(function(s) {
+            var q = (typeof s === 'string') ? s : (s.query || s.text || '');
+            if (!q) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = q;
+            b.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:transparent;cursor:pointer;font:inherit';
+            b.addEventListener('click', function() { hideSuggestions(); sendMessage(q); });
+            suggestBox.appendChild(b);
+        });
+        suggestBox.style.display = 'block';
+    }
+    input && input.addEventListener('input', function() {
+        clearTimeout(suggestTimer);
+        var q = (input.value || '').trim();
+        if (q.length < 2) { hideSuggestions(); return; }
+        suggestTimer = setTimeout(function() {
+            fetch('/api/chat/suggestions?q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    var list = (d && d.suggestions) ? d.suggestions : (Array.isArray(d) ? d : []);
+                    showSuggestions(list.slice(0, 6));
+                })
+                .catch(function() { hideSuggestions(); });
+        }, 200);
+    });
 
     sendBtn && sendBtn.addEventListener('click', function() { sendMessage(input && input.value); });
     input && input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); sendMessage(input.value); }
+        if (e.key === 'Escape') hideSuggestions();
     });
 })();
 </script>

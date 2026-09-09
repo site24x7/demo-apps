@@ -26,15 +26,30 @@ _PROVIDERS: dict[str, Callable[[], LLMProvider]] = {
 }
 
 _cached: LLMProvider | None = None
+_cached_failed: str | None = None
 
 
 def available_providers() -> list[str]:
     return sorted(_PROVIDERS.keys())
 
 
+def clear_provider_cache() -> None:
+    global _cached, _cached_failed
+    _cached = None
+    _cached_failed = None
+
+
 def get_provider(name: str | None = None, *, force_reload: bool = False) -> LLMProvider:
-    global _cached
-    if _cached is not None and not force_reload and name is None:
+    """Return the configured provider.
+
+    Failed constructions are not cached permanently — the next request retries so
+    late-starting Ollama (or other backends) can recover without a container restart.
+    """
+    global _cached, _cached_failed
+    if force_reload:
+        clear_provider_cache()
+
+    if _cached is not None and name is None:
         return _cached
 
     key = (name or os.environ.get("LLM_PROVIDER") or "ollama").strip().lower()
@@ -43,8 +58,16 @@ def get_provider(name: str | None = None, *, force_reload: bool = False) -> LLMP
         raise LLMError(
             f"Unknown LLM_PROVIDER={key!r}. Supported: {', '.join(available_providers())}"
         )
-    provider = factory()
+
+    try:
+        provider = factory()
+    except Exception as e:
+        _cached_failed = str(e)
+        logger.warning("LLM provider init failed name=%s err=%s — will retry next request", key, e)
+        raise LLMError(f"Failed to initialize LLM provider {key!r}: {e}") from e
+
     logger.info("LLM provider ready name=%s model=%s", provider.name, provider.model)
     if name is None:
         _cached = provider
+        _cached_failed = None
     return provider
