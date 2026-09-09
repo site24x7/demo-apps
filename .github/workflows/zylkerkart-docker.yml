@@ -1,14 +1,14 @@
 # =============================================================================
 # ZylkerKart — Docker Image Build & Push
 # =============================================================================
-# Builds multi-arch Docker images for all 6 ZylkerKart microservices
+# Builds multi-arch Docker images for all 7 ZylkerKart microservices
 # and pushes them to Docker Hub.
 #
 # Trigger: Push to main when files under ZylkerKart services change,
 #          or manual dispatch.
 #
 # Architecture:
-#   - 5 services: linux/amd64 + linux/arm64 (multi-arch)
+#   - 6 services: linux/amd64 + linux/arm64 (multi-arch)
 #   - auth-service: linux/amd64 only (.NET Dockerfile is x86-hardcoded)
 #
 # Required secrets:
@@ -40,6 +40,7 @@ on:
           - search-service
           - payment-service
           - auth-service
+          - ai-assistant
 
 env:
   SERVICES_ROOT: Applications/ZylkerKart_Ecommerce/services
@@ -73,6 +74,9 @@ jobs:
             platforms: linux/amd64,linux/arm64
             needs_github_token: true
           - service: payment-service
+            platforms: linux/amd64,linux/arm64
+            needs_github_token: false
+          - service: ai-assistant
             platforms: linux/amd64,linux/arm64
             needs_github_token: false
 

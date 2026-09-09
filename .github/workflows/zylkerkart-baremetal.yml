@@ -482,7 +482,57 @@ jobs:
           retention-days: 1
 
   # ---------------------------------------------------------------------------
-  # 8. Redis — Configuration Only
+  # 8. AI Assistant — Python 3.11 / FastAPI (Source + requirements.txt)
+  # ---------------------------------------------------------------------------
+  build-ai-assistant:
+    name: "Build: ai-assistant"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package tarball
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          PKG="zylkerkart-ai-assistant-${VERSION}-linux-amd64"
+          mkdir -p "${PKG}/bin/app" "${PKG}/config" "${PKG}/systemd"
+
+          cp -a ${{ env.APP_ROOT }}/services/ai-assistant/app/* "${PKG}/bin/app/"
+          cp ${{ env.APP_ROOT }}/services/ai-assistant/requirements.txt "${PKG}/bin/"
+
+          cp ${{ env.BAREMETAL_ROOT }}/config/ai-assistant.env.example "${PKG}/config/"
+          cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-ai-assistant.service "${PKG}/systemd/"
+          cp ${{ env.BAREMETAL_ROOT }}/scripts/install.sh "${PKG}/"
+          chmod +x "${PKG}/install.sh"
+
+          cat > "${PKG}/manifest" << EOF
+          SERVICE_NAME=ai-assistant
+          SERVICE_TYPE=python
+          SERVICE_PORT=8086
+          SERVICE_VERSION=${VERSION}
+          EOF
+
+          tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-assistant-tarball
+          path: zylkerkart-ai-assistant-*.tar.gz
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # 9. Redis — Configuration Only
   # ---------------------------------------------------------------------------
   build-redis:
     name: "Build: redis"
@@ -541,6 +591,7 @@ jobs:
       - build-search-service
       - build-payment-service
       - build-auth-service
+      - build-ai-assistant
       - build-mysql
       - build-redis
     steps:
@@ -600,6 +651,7 @@ jobs:
             | `zylkerkart-search-service-*` | None (static binary) |
             | `zylkerkart-payment-service-*` | Python 3.11 + pip |
             | `zylkerkart-auth-service-*` | dotnet-runtime-8.0 |
+            | `zylkerkart-ai-assistant-*` | Python 3.11 + pip |
             | `zylkerkart-mysql-*` | MySQL 8.0 |
             | `zylkerkart-redis-*` | Redis 7.x |
 
@@ -612,5 +664,6 @@ jobs:
             5. Search Service → `install.sh`
             6. Order Service → `install.sh`
             7. Payment Service → `install.sh`
-            8. Storefront → `install.sh`
+            8. AI Assistant → `install.sh`
+            9. Storefront → `install.sh`
           files: artifacts/**/*.tar.gz
