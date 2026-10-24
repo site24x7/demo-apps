@@ -17,9 +17,9 @@ variable "allowed_ssh_cidr" {
 }
 
 variable "artifact_version" {
-  description = "ZylkerKart artifact version to download from GitHub releases (e.g. 'v1.0.0')"
+  description = "GitHub release tag to download ZylkerKart artifacts from. 'latest' is the rolling release rebuilt on every push to main."
   type        = string
-  default     = "v1.0.1"
+  default     = "latest"
 }
 
 # Instance types

@@ -20,6 +20,7 @@
 
     <properties>
         <java.version>17</java.version>
+        <chaos-sdk.version>1.2.0</chaos-sdk.version>
     </properties>
 
     <dependencies>
@@ -64,7 +65,7 @@
         <dependency>
             <groupId>com.site24x7.labs</groupId>
             <artifactId>chaos-sdk-spring-boot-3</artifactId>
-            <version>1.1.2</version>
+            <version>${chaos-sdk.version}</version>
         </dependency>
         <!-- Required by Chaos SDK ConfigFileWatcher -->
         <dependency>
@@ -75,8 +76,9 @@
 
     <repositories>
         <repository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/site24x7/observe-labs</url>
+            <!-- Site24x7 Chaos SDK, shipped in the repo-root chaos-libs/ folder -->
+            <id>chaos-libs</id>
+            <url>file://${project.basedir}/../../../../chaos-libs/java</url>
         </repository>
     </repositories>
 

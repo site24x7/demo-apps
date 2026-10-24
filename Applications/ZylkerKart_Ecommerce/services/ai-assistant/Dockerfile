@@ -1,6 +1,12 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim AS builder
 
-WORKDIR /app
+# Mirror the repo layout so requirements.txt's --find-links path resolves
+WORKDIR /repo/Applications/ZylkerKart_Ecommerce/services/ai-assistant
+
+# Chaos SDK comes from the repo-root chaos-libs/ (named build context)
+COPY --from=chaos-libs python/ /repo/chaos-libs/python/
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 

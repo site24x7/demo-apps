@@ -7,7 +7,7 @@ version: "3.9"
 #   8080  Storefront    (Java 17 / Spring Boot 3.2)
 #   8081  Product       (Java 17 / Spring Boot)
 #   8082  Order         (Node.js 18 / Express)
-#   8083  Search        (Go 1.21 / Gin)
+#   8083  Search        (Go 1.25 / Gin)
 #   8084  Payment       (Python 3.11 / FastAPI)
 #   8085  Auth          (C# / .NET 8)
 #   8086  AI Assistant  (Python 3.11 / FastAPI + Ollama)
@@ -76,6 +76,8 @@ services:
     build:
       context: ./services/product-service
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-product
     user: "0:0"
     ports:
@@ -135,6 +137,8 @@ services:
     build:
       context: ./services/order-service
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-order
     user: "0:0"
     ports:
@@ -180,12 +184,14 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  # 3. Search Service — Go 1.21 / Gin (port 8083)
+  # 3. Search Service — Go 1.25 / Gin (port 8083)
   #    APM: Site24x7 Go Agent (eBPF sidecar — see s247-go-apm-agent service below)
   search-service:
     build:
       context: ./services/search-service
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-search
     ports:
       - "8083:8083"
@@ -219,6 +225,8 @@ services:
     build:
       context: ./services/payment-service
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-payment
     user: "0:0"
     ports:
@@ -278,6 +286,8 @@ services:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-auth
     user: "0:0"
     ports:
@@ -345,6 +355,8 @@ services:
     build:
       context: ./services/storefront
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-storefront
     user: "0:0"
     ports:
@@ -412,6 +424,8 @@ services:
     build:
       context: ./services/ai-assistant
       dockerfile: Dockerfile
+      additional_contexts:
+        chaos-libs: ../../chaos-libs
     container_name: zylkerkart-ai-assistant
     user: "0:0"
     expose:

@@ -1,6 +1,6 @@
 # ZylkerKart — Bare Metal Deployment Guide
 
-Deploy ZylkerKart microservices on bare metal Linux servers using universal tar.gz artifacts from GitHub Releases.
+Deploy ZylkerKart microservices on bare metal Linux servers using universal tar.gz artifacts from the rolling [`latest`](https://github.com/site24x7/demo-apps/releases/tag/latest) GitHub Release.
 
 ## Architecture Overview
 
@@ -31,18 +31,31 @@ Deploy ZylkerKart microservices on bare metal Linux servers using universal tar.
 
 ## Artifacts
 
-Each release on GitHub contains 8 tar.gz files:
+There is one rolling release, tagged `latest`. It is rebuilt on every push to
+`main` that touches the services, the bare-metal configs or `chaos-libs/`, so the
+download URLs never change:
+
+```
+https://github.com/site24x7/demo-apps/releases/download/latest/<artifact>
+```
+
+It contains 9 tar.gz files:
 
 | Artifact | Contents | Runtime Required |
 |---|---|---|
-| `zylkerkart-storefront-<ver>-linux-amd64.tar.gz` | Fat JAR (`app.jar`) | JRE 17 |
-| `zylkerkart-product-service-<ver>-linux-amd64.tar.gz` | Fat JAR (`app.jar`) | JRE 17 |
-| `zylkerkart-order-service-<ver>-linux-amd64.tar.gz` | Source + `node_modules/` | Node.js 18 |
-| `zylkerkart-search-service-<ver>-linux-amd64.tar.gz` | Static binary | None |
-| `zylkerkart-payment-service-<ver>-linux-amd64.tar.gz` | Source + `requirements.txt` | Python 3.11 + pip |
-| `zylkerkart-auth-service-<ver>-linux-amd64.tar.gz` | Published DLLs | dotnet-runtime-8.0 |
-| `zylkerkart-mysql-<ver>.tar.gz` | SQL schema + seed data | MySQL 8.0 (pre-installed) |
-| `zylkerkart-redis-<ver>.tar.gz` | Config + systemd unit | Redis 7.x (pre-installed) |
+| `zylkerkart-storefront-latest-linux-amd64.tar.gz` | Fat JAR (`app.jar`) | JRE 17 |
+| `zylkerkart-product-service-latest-linux-amd64.tar.gz` | Fat JAR (`app.jar`) | JRE 17 |
+| `zylkerkart-order-service-latest-linux-amd64.tar.gz` | Source + `node_modules/` | Node.js 18 |
+| `zylkerkart-search-service-latest-linux-amd64.tar.gz` | Static binary | None |
+| `zylkerkart-payment-service-latest-linux-amd64.tar.gz` | Source + `requirements.txt` + Chaos SDK wheel | Python 3.11 + pip |
+| `zylkerkart-ai-assistant-latest-linux-amd64.tar.gz` | Source + `requirements.txt` + Chaos SDK wheel | Python 3.11 + pip |
+| `zylkerkart-auth-service-latest-linux-amd64.tar.gz` | Published DLLs | dotnet-runtime-8.0 |
+| `zylkerkart-mysql-latest.tar.gz` | SQL schema + seed data | MySQL 8.0 (pre-installed) |
+| `zylkerkart-redis-latest.tar.gz` | Config + systemd unit | Redis 7.x (pre-installed) |
+
+The Site24x7 Chaos SDK is built into every artifact. It comes from the repo-root
+`chaos-libs/` folder at build time, so nothing is pulled from a private registry
+on the target server.
 
 ## Prerequisites
 
@@ -81,7 +94,7 @@ Deploy infrastructure first, then services (backend → frontend):
 
 ```bash
 # Download
-VERSION=v1.0.0
+VERSION=latest
 curl -LO https://github.com/site24x7/demo-apps/releases/download/${VERSION}/zylkerkart-mysql-${VERSION}.tar.gz
 
 # Extract
@@ -103,7 +116,7 @@ loads the schema (17 tables), and seeds product data.
 ### 2. Deploy Redis (Server 2)
 
 ```bash
-VERSION=v1.0.0
+VERSION=latest
 curl -LO https://github.com/site24x7/demo-apps/releases/download/${VERSION}/zylkerkart-redis-${VERSION}.tar.gz
 tar xzf zylkerkart-redis-${VERSION}.tar.gz
 cd zylkerkart-redis-${VERSION}
@@ -123,7 +136,7 @@ All 6 services follow the same pattern:
 
 ```bash
 # Download (example: auth-service)
-VERSION=v1.0.0
+VERSION=latest
 SERVICE=auth-service
 curl -LO https://github.com/site24x7/demo-apps/releases/download/${VERSION}/zylkerkart-${SERVICE}-${VERSION}-linux-amd64.tar.gz
 
@@ -254,12 +267,12 @@ sudo systemctl disable zylkerkart-storefront
 ### Upgrading a Service
 
 ```bash
-# Download new version
-curl -LO https://github.com/site24x7/demo-apps/releases/download/v1.1.0/zylkerkart-storefront-v1.1.0-linux-amd64.tar.gz
+# Download the current build (the "latest" release is replaced on every build)
+curl -LO https://github.com/site24x7/demo-apps/releases/download/latest/zylkerkart-storefront-latest-linux-amd64.tar.gz
 
 # Extract and re-run install (it stops the service, overwrites files, preserves your .env)
-tar xzf zylkerkart-storefront-v1.1.0-linux-amd64.tar.gz
-cd zylkerkart-storefront-v1.1.0-linux-amd64
+tar xzf zylkerkart-storefront-latest-linux-amd64.tar.gz
+cd zylkerkart-storefront-latest-linux-amd64
 sudo ./install.sh
 
 # Start the upgraded service
@@ -282,24 +295,22 @@ The fault config directory `/var/site24x7-labs/faults/` is created by `install.s
 
 ## CI/CD: How Releases Are Built
 
-The GitHub Actions workflow (`.github/workflows/zylkerkart-baremetal.yml`) runs when you push a version tag:
+The GitHub Actions workflow (`.github/workflows/zylkerkart-baremetal.yml`) runs on every push to
+`main` that changes `Applications/ZylkerKart_Ecommerce/services/**`,
+`Applications/ZylkerKart_Ecommerce/baremetal/**` or `chaos-libs/**`. It can also be started
+manually from the Actions tab. No secrets are needed: the Chaos SDK comes from `chaos-libs/`.
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-This triggers 8 parallel build jobs:
+It runs 9 parallel build jobs:
 
 1. **Java services** — Maven builds fat JARs with `mvn package`
 2. **Node.js service** — `npm install --omit=dev` bundles `node_modules/`
 3. **Go service** — `CGO_ENABLED=0 go build` produces a static binary
-4. **Python service** — Packages source + `requirements.txt` (venv created on target)
+4. **Python services** (payment-service, ai-assistant) — Package source + `requirements.txt` and bundle the Chaos SDK wheel under `bin/wheels/` (venv created on target)
 5. **.NET service** — `dotnet publish` produces framework-dependent DLLs
 6. **MySQL** — Generates seed SQL from CSV via `generate_seed_sql.py`
 7. **Redis** — Packages config files only
 
-All 8 tarballs are uploaded to a GitHub Release automatically.
+When all builds pass, the previous `latest` release and tag are deleted and re-created on the commit that was built, with all 9 tarballs attached.
 
 ## Troubleshooting
 

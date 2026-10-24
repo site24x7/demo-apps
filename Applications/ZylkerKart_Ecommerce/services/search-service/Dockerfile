@@ -1,25 +1,20 @@
+# syntax=docker/dockerfile:1
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
-ARG GITHUB_TOKEN
+# Mirror the repo layout so go.mod's replace path resolves
+WORKDIR /repo/Applications/ZylkerKart_Ecommerce/services/search-service
 
-WORKDIR /app
+# Chaos SDK comes from the repo-root chaos-libs/ (named build context)
+COPY --from=chaos-libs go/ /repo/chaos-libs/go/
 
-# Install git for module downloads
-RUN apk add --no-cache git
+# Download dependencies first (better layer caching)
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Configure git to use token for private GitHub repos
-RUN git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-
-# Set GOPRIVATE so Go doesn't try the public proxy for our modules
-ENV GOPRIVATE=github.com/site24x7/*
-
-# Copy all source code
+# Copy source and build
 COPY . .
-
-# Resolve dependencies and build
-RUN go mod tidy
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o search-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /out/search-service .
 
 # Runtime stage
 FROM alpine:3.18
@@ -29,7 +24,7 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /app/search-service .
+COPY --from=builder /out/search-service .
 
 EXPOSE 8083
 
