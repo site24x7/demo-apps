@@ -1,8 +1,6 @@
 # Build output
 bin/
 obj/
-chaos-sdk/bin/
-chaos-sdk/obj/
 
 # IDE
 .vscode/

@@ -16,7 +16,7 @@ Backed by [LiteLLM](https://github.com/BerriAI/litellm). Agent code depends only
 ## Observability & chaos
 
 - **LLM traces:** Traceloop → Site24x7 OTLP (`OTEL_EXPORTER_OTLP_*`)
-- **Chaos:** same FastAPI SDK as payment-service (`site24x7-chaos[fastapi]`, `CHAOS_SDK_*`)
+- **Chaos:** same FastAPI SDK as payment-service (`site24x7-chaos[fastapi]` from the repo-root `chaos-libs/python`, `CHAOS_SDK_*`)
 
 ## Endpoints
 

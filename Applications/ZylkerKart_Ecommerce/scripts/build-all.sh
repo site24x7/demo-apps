@@ -100,7 +100,12 @@ SERVICES=(
     "payment-service:services/payment-service"
     "auth-service:services/auth-service"
     "storefront:services/storefront"
+    "ai-assistant:services/ai-assistant"
 )
+
+# Chaos SDK artifacts live in the repo-root chaos-libs/ folder; every service
+# Dockerfile pulls them in through the "chaos-libs" named build context.
+CHAOS_LIBS_DIR="$(cd "${ROOT_DIR}/../.." && pwd)/chaos-libs"
 
 FAILED=()
 
@@ -138,6 +143,7 @@ for entry in "${SERVICES[@]}"; do
         BUILD_ARGS=(
             --platform "${platforms}"
             -t "${image}"
+            --build-context "chaos-libs=${CHAOS_LIBS_DIR}"
             "${ROOT_DIR}/${path}"
         )
         if docker buildx build --push "${BUILD_ARGS[@]}"; then
@@ -152,6 +158,7 @@ for entry in "${SERVICES[@]}"; do
         BUILD_ARGS=(
             --platform "${platforms}"
             -t "${image}"
+            --build-context "chaos-libs=${CHAOS_LIBS_DIR}"
             "${ROOT_DIR}/${path}"
         )
         if docker buildx build --load "${BUILD_ARGS[@]}"; then

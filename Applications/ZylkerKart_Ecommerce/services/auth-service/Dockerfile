@@ -1,11 +1,17 @@
+# syntax=docker/dockerfile:1
 # ── Stage 1: Build ────────────────────────────────────────────
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
 
-COPY AuthService.csproj ./
+# Mirror the repo layout so nuget.config's relative chaos-libs feed resolves
+WORKDIR /repo/Applications/ZylkerKart_Ecommerce/services/auth-service
+
+# Chaos SDK comes from the repo-root chaos-libs/ (named build context)
+COPY --from=chaos-libs dotnet/ /repo/chaos-libs/dotnet/
+
+COPY AuthService.csproj nuget.config ./
 RUN dotnet restore
 
-# Copy app source files only (not chaos-sdk again — already restored above)
+# Copy app source files only
 COPY appsettings.json ./
 COPY Program.cs ./
 COPY Controllers/ ./Controllers/

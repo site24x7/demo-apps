@@ -55,7 +55,7 @@ ZylkerKart simulates a real-world e-commerce platform where customers can browse
 │Product │ │ Order  │ │Search  │ │Payment │ │  Auth  │
 │Service │ │Service │ │Service │ │Service │ │Service │
 │        │ │        │ │        │ │        │ │        │
-│Java 17 │ │Node 18 │ │Go 1.21 │ │Py 3.11 │ │.NET 8  │
+│Java 17 │ │Node 18 │ │Go 1.25 │ │Py 3.11 │ │.NET 8  │
 │Spring  │ │Express │ │  Gin   │ │FastAPI │ │ASP.NET │
 │ Boot   │ │        │ │        │ │        │ │  Core  │
 │:8081   │ │:8082   │ │:8083   │ │:8084   │ │:8085   │
@@ -84,7 +84,7 @@ ZylkerKart simulates a real-world e-commerce platform where customers can browse
 | **Storefront** | Java 17 / Spring Boot 3.2 | 8080 | Redis (sessions) | Server-side rendered frontend (Thymeleaf), proxies API calls to backend services |
 | **Product Service** | Java 17 / Spring Boot 3 | 8081 | `db_product` (9 tables) | Product catalog, categories, search, pagination |
 | **Order Service** | Node.js 18 / Express | 8082 | `db_order` (3 tables) | Shopping cart (Redis-backed), order creation & tracking |
-| **Search Service** | Go 1.21 / Gin | 8083 | `db_search` (1 table) | Autocomplete, trending searches, search logging |
+| **Search Service** | Go 1.25 / Gin | 8083 | `db_search` (1 table) | Autocomplete, trending searches, search logging |
 | **Payment Service** | Python 3.11 / FastAPI | 8084 | `db_payment` (1 table) | Payment processing, fraud scoring, refunds |
 | **Auth Service** | C# / .NET 8 (ASP.NET Core) | 8085 | `db_auth` (3 tables) | JWT authentication, user registration, token refresh |
 
@@ -231,6 +231,37 @@ ZylkerKart simulates a real-world e-commerce platform where customers can browse
 - **Docker** & **Docker Compose** (v2+)
 - **kubectl** & a Kubernetes cluster (for K8s deployment)
 - **Site24x7 license key** (optional, for APM monitoring)
+
+---
+
+### 📦 Site24x7 Chaos SDK
+
+Every service embeds the Site24x7 Labs Chaos SDK. The SDK is **not** pulled from
+npm, PyPI, NuGet, Maven or Go module proxies. It ships in the repo-root
+[`chaos-libs/`](../../chaos-libs) folder, which holds the current release for all
+five languages (one shared version, see `chaos-libs/VERSION`). No tokens or
+registry credentials are needed to build.
+
+| Service | Manifest entry |
+|---------|----------------|
+| order-service | `package.json` → `file:../../../../chaos-libs/nodejs/site24x7-chaos-sdk-<V>.tgz` |
+| payment-service, ai-assistant | `requirements.txt` → `--find-links ../../../../chaos-libs/python` + `site24x7-chaos[fastapi]==<V>` |
+| auth-service | `AuthService.csproj` → `Site24x7.Chaos` `<V>` via the local feed in `nuget.config` |
+| search-service | `go.mod` → `observe-labs/sdks/go v<V>` + `replace … => ../../../../chaos-libs/go` |
+| product-service, storefront | `pom.xml` → `<chaos-sdk.version>` + a `file://` repository at `chaos-libs/java` |
+
+The paths are relative to each service folder, so they work in a plain checkout.
+Each Dockerfile mirrors the repo layout and gets `chaos-libs/` through a named
+build context:
+
+```bash
+# docker compose sets this up already (additional_contexts in docker-compose.yml)
+docker buildx build --build-context chaos-libs=../../chaos-libs services/order-service
+```
+
+New SDK releases are committed to `chaos-libs/` by the observe-labs release
+workflow, which bumps every reference above in the same commit. Don't edit the
+version numbers by hand.
 
 ---
 
@@ -401,10 +432,13 @@ ZylkerKart/
 └── services/                   # Microservices source code
     ├── product-service/        # Java 17 / Spring Boot 3
     ├── order-service/          # Node.js 18 / Express
-    ├── search-service/         # Go 1.21 / Gin
+    ├── search-service/         # Go 1.25 / Gin
     ├── payment-service/        # Python 3.11 / FastAPI
     ├── auth-service/           # C# / .NET 8
-    └── storefront/             # Java 17 / Spring Boot 3.2
+    ├── storefront/             # Java 17 / Spring Boot 3.2
+    └── ai-assistant/           # Python 3.11 / FastAPI
+
+../../chaos-libs/               # Site24x7 Chaos SDK (all languages, current version)
 ```
 
 ---

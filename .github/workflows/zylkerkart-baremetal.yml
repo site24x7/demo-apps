@@ -2,41 +2,52 @@
 # ZylkerKart — Bare Metal Artifact Build & Release
 # =============================================================================
 # Builds universal Linux (amd64) tarballs for all ZylkerKart services
-# and publishes them as GitHub Release assets.
+# and publishes them as assets of ONE rolling GitHub Release tagged "latest".
+# Every build deletes the previous "latest" release and re-creates it from
+# the commit being built, so the download URLs never change.
 #
-# Trigger: Push a git tag matching 'v*' (e.g., v1.0.0)
+# Trigger: push to main touching the services, the bare-metal configs or
+#          chaos-libs/, or manual dispatch.
 #
-# Artifacts (8 tarballs):
-#   - zylkerkart-storefront-<version>-linux-amd64.tar.gz
-#   - zylkerkart-product-service-<version>-linux-amd64.tar.gz
-#   - zylkerkart-order-service-<version>-linux-amd64.tar.gz
-#   - zylkerkart-search-service-<version>-linux-amd64.tar.gz
-#   - zylkerkart-payment-service-<version>-linux-amd64.tar.gz
-#   - zylkerkart-auth-service-<version>-linux-amd64.tar.gz
-#   - zylkerkart-mysql-<version>.tar.gz
-#   - zylkerkart-redis-<version>.tar.gz
+# Chaos SDK: taken from the repo-root chaos-libs/ folder (no registry, no
+#   tokens). Python tarballs bundle the SDK wheel under bin/wheels/.
 #
-# Required secrets:
-#   - GH_PKG_TOKEN  — Classic PAT with read:packages scope (for cross-repo
-#                     access to site24x7/observe-labs Maven/Go packages)
+# Artifacts (9 tarballs):
+#   - zylkerkart-storefront-latest-linux-amd64.tar.gz
+#   - zylkerkart-product-service-latest-linux-amd64.tar.gz
+#   - zylkerkart-order-service-latest-linux-amd64.tar.gz
+#   - zylkerkart-search-service-latest-linux-amd64.tar.gz
+#   - zylkerkart-payment-service-latest-linux-amd64.tar.gz
+#   - zylkerkart-auth-service-latest-linux-amd64.tar.gz
+#   - zylkerkart-ai-assistant-latest-linux-amd64.tar.gz
+#   - zylkerkart-mysql-latest.tar.gz
+#   - zylkerkart-redis-latest.tar.gz
+#
+# Download URL:
+#   https://github.com/site24x7/demo-apps/releases/download/latest/<artifact>
 # =============================================================================
 
 name: "ZylkerKart: Bare Metal Build & Release"
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths:
+      - "Applications/ZylkerKart_Ecommerce/services/**"
+      - "Applications/ZylkerKart_Ecommerce/baremetal/**"
+      - "chaos-libs/**"
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release version tag (e.g., v1.0.0)"
-        required: true
-        type: string
+
+# Queue runs so two builds never race on deleting/re-creating the release
+concurrency:
+  group: zylkerkart-baremetal-release
+  cancel-in-progress: false
 
 env:
   APP_ROOT: Applications/ZylkerKart_Ecommerce
   BAREMETAL_ROOT: Applications/ZylkerKart_Ecommerce/baremetal
+  CHAOS_LIBS: chaos-libs
+  RELEASE_TAG: latest
 
 permissions:
   contents: write  # Needed to create releases
@@ -59,25 +70,13 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
-
-      - name: Configure Maven for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>token</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>' "$GITHUB_TOKEN" > ~/.m2/settings.xml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Build JAR
         run: mvn package -DskipTests -B -q
@@ -128,25 +127,13 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
-
-      - name: Configure Maven for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>token</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>' "$GITHUB_TOKEN" > ~/.m2/settings.xml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
 
       - name: Build JAR
         run: mvn package -DskipTests -B -q
@@ -193,12 +180,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js 18
         uses: actions/setup-node@v4
@@ -243,7 +225,7 @@ jobs:
           retention-days: 1
 
   # ---------------------------------------------------------------------------
-  # 4. Search Service — Go 1.21 / Gin (Static Binary)
+  # 4. Search Service — Go 1.25 / Gin (Static Binary)
   # ---------------------------------------------------------------------------
   build-search-service:
     name: "Build: search-service"
@@ -255,31 +237,18 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Go 1.21
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.25"
+          cache-dependency-path: ${{ env.APP_ROOT }}/services/search-service/go.sum
 
-      - name: Configure Go for private modules
-        run: |
-          git config --global url."https://x-access-token:${{ secrets.GH_PKG_TOKEN }}@github.com/".insteadOf "https://github.com/"
-        env:
-          GOPRIVATE: github.com/site24x7/*
-
+      # go.mod replaces the Chaos SDK with ../../../../chaos-libs/go
       - name: Build static binary
-        run: |
-          go mod tidy
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o search-service .
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o search-service .
         working-directory: ${{ env.APP_ROOT }}/services/search-service
-        env:
-          GOPRIVATE: github.com/site24x7/*
 
       - name: Package tarball
         run: |
@@ -324,12 +293,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Package tarball
         run: |
@@ -340,6 +304,11 @@ jobs:
           # Python source + requirements (venv created on target by install.sh)
           cp -a ${{ env.APP_ROOT }}/services/payment-service/app/* "${PKG}/bin/app/"
           cp ${{ env.APP_ROOT }}/services/payment-service/requirements.txt "${PKG}/bin/"
+
+          # Bundle the Chaos SDK wheel and resolve it from bin/wheels on the target
+          mkdir -p "${PKG}/bin/wheels"
+          cp ${{ env.CHAOS_LIBS }}/python/*.whl "${PKG}/bin/wheels/"
+          sed -i 's#^--find-links .*#--find-links wheels#' "${PKG}/bin/requirements.txt"
 
           cp ${{ env.BAREMETAL_ROOT }}/config/payment-service.env.example "${PKG}/config/"
           cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-payment-service.service "${PKG}/systemd/"
@@ -375,12 +344,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
@@ -433,12 +397,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -494,12 +453,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Package tarball
         run: |
@@ -509,6 +463,11 @@ jobs:
 
           cp -a ${{ env.APP_ROOT }}/services/ai-assistant/app/* "${PKG}/bin/app/"
           cp ${{ env.APP_ROOT }}/services/ai-assistant/requirements.txt "${PKG}/bin/"
+
+          # Bundle the Chaos SDK wheel and resolve it from bin/wheels on the target
+          mkdir -p "${PKG}/bin/wheels"
+          cp ${{ env.CHAOS_LIBS }}/python/*.whl "${PKG}/bin/wheels/"
+          sed -i 's#^--find-links .*#--find-links wheels#' "${PKG}/bin/requirements.txt"
 
           cp ${{ env.BAREMETAL_ROOT }}/config/ai-assistant.env.example "${PKG}/config/"
           cp ${{ env.BAREMETAL_ROOT }}/systemd/zylkerkart-ai-assistant.service "${PKG}/systemd/"
@@ -544,12 +503,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Package tarball
         run: |
@@ -595,14 +549,14 @@ jobs:
       - build-mysql
       - build-redis
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set version
         id: version
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          fi
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "chaos=$(cat ${CHAOS_LIBS}/VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -612,15 +566,27 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f -name "*.tar.gz" | sort
 
+      # Rolling release: drop the previous "latest" release and its tag, then
+      # re-create both on the commit being built
+      - name: Remove previous rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes || true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: "ZylkerKart ${{ steps.version.outputs.tag }} — Bare Metal"
+          target_commitish: ${{ github.sha }}
+          name: "ZylkerKart — Bare Metal (latest)"
           draft: false
           prerelease: false
+          make_latest: true
           body: |
-            ## ZylkerKart ${{ steps.version.outputs.tag }} — Bare Metal Artifacts
+            ## ZylkerKart — Bare Metal Artifacts (rolling)
+
+            Built from `${{ github.sha }}` with Site24x7 Chaos SDK `${{ steps.version.outputs.chaos }}`.
+            This release is replaced on every build; the download URLs stay the same.
 
             Universal Linux (amd64) tarballs for bare metal deployment.
             Each artifact includes an `install.sh` script, systemd unit file, and env config template.

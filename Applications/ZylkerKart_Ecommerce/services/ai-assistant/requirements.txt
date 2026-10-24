@@ -1,3 +1,4 @@
+--find-links ../../../../chaos-libs/python
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 httpx==0.28.1
@@ -6,4 +7,4 @@ litellm==1.65.0
 traceloop-sdk==0.38.4
 pydantic==2.10.4
 redis==5.2.1
-site24x7-chaos[fastapi]==1.1.2
+site24x7-chaos[fastapi]==1.2.0
