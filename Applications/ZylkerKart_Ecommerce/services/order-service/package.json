@@ -8,7 +8,7 @@
     "dev": "nodemon src/app.js"
   },
   "dependencies": {
-    "site24x7-chaos-sdk": "file:../../../../chaos-libs/nodejs/site24x7-chaos-sdk-1.2.1.tgz",
+    "site24x7-chaos-sdk": "file:../../../../chaos-libs/nodejs/site24x7-chaos-sdk-1.2.2.tgz",
     "axios": "^1.6.5",
     "cors": "^2.8.5",
     "express": "^4.18.2",

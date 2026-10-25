@@ -22,7 +22,7 @@ Inject realistic application-level faults into Go microservices during Site24x7 
 
 > SDKs are shipped only in [site24x7/demo-apps](https://github.com/site24x7/demo-apps) under `chaos-libs/` (see `chaos-libs/README.md` there); they are not published to a Go module proxy or tags. Paths below assume the app sits at `Applications/<app>/services/<svc>/` in demo-apps.
 
-Requires Go 1.25+. In `go.mod`:
+Requires Go 1.26+. In `go.mod`:
 
 ```go
 require github.com/site24x7/observe-labs/sdks/go v<version>
