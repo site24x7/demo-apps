@@ -55,7 +55,7 @@ ZylkerKart simulates a real-world e-commerce platform where customers can browse
 │Product │ │ Order  │ │Search  │ │Payment │ │  Auth  │
 │Service │ │Service │ │Service │ │Service │ │Service │
 │        │ │        │ │        │ │        │ │        │
-│Java 17 │ │Node 18 │ │Go 1.25 │ │Py 3.11 │ │.NET 8  │
+│Java 17 │ │Node 18 │ │Go 1.26 │ │Py 3.11 │ │.NET 8  │
 │Spring  │ │Express │ │  Gin   │ │FastAPI │ │ASP.NET │
 │ Boot   │ │        │ │        │ │        │ │  Core  │
 │:8081   │ │:8082   │ │:8083   │ │:8084   │ │:8085   │
@@ -84,7 +84,7 @@ ZylkerKart simulates a real-world e-commerce platform where customers can browse
 | **Storefront** | Java 17 / Spring Boot 3.2 | 8080 | Redis (sessions) | Server-side rendered frontend (Thymeleaf), proxies API calls to backend services |
 | **Product Service** | Java 17 / Spring Boot 3 | 8081 | `db_product` (9 tables) | Product catalog, categories, search, pagination |
 | **Order Service** | Node.js 18 / Express | 8082 | `db_order` (3 tables) | Shopping cart (Redis-backed), order creation & tracking |
-| **Search Service** | Go 1.25 / Gin | 8083 | `db_search` (1 table) | Autocomplete, trending searches, search logging |
+| **Search Service** | Go 1.26 / Gin | 8083 | `db_search` (1 table) | Autocomplete, trending searches, search logging |
 | **Payment Service** | Python 3.11 / FastAPI | 8084 | `db_payment` (1 table) | Payment processing, fraud scoring, refunds |
 | **Auth Service** | C# / .NET 8 (ASP.NET Core) | 8085 | `db_auth` (3 tables) | JWT authentication, user registration, token refresh |
 
@@ -432,7 +432,7 @@ ZylkerKart/
 └── services/                   # Microservices source code
     ├── product-service/        # Java 17 / Spring Boot 3
     ├── order-service/          # Node.js 18 / Express
-    ├── search-service/         # Go 1.25 / Gin
+    ├── search-service/         # Go 1.26 / Gin
     ├── payment-service/        # Python 3.11 / FastAPI
     ├── auth-service/           # C# / .NET 8
     ├── storefront/             # Java 17 / Spring Boot 3.2

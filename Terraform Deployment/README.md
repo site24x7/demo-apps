@@ -43,7 +43,7 @@ graph TD
     Ingress -->|"/"| SF["Storefront (BFF)<br/>Java 17 / Spring Boot 3.2<br/>:8080"]
     Ingress -->|"/api/products"| PS["Product Service<br/>Java 17 / Spring Boot<br/>:8081"]
     Ingress -->|"/api/orders, /api/cart"| OS["Order Service<br/>Node.js 18 / Express<br/>:8082"]
-    Ingress -->|"/api/search"| SS["Search Service<br/>Go 1.25 / Gin<br/>:8083"]
+    Ingress -->|"/api/search"| SS["Search Service<br/>Go 1.26 / Gin<br/>:8083"]
     Ingress -->|"/api/payments"| Pay["Payment Service<br/>Python 3.11 / FastAPI<br/>:8084"]
     Ingress -->|"/api/auth"| Auth["Auth Service<br/>C# / .NET 8<br/>:8085"]
 
@@ -62,7 +62,7 @@ graph TD
 | **storefront** | Java 17 / Spring Boot 3.2 | 8080 | -- | Java (init container) |
 | **product-service** | Java 17 / Spring Boot | 8081 | `db_product` | Java (init container) |
 | **order-service** | Node.js 18 / Express | 8082 | `db_order` | Node.js (init container) |
-| **search-service** | Go 1.25 / Gin | 8083 | `db_search` | Go (eBPF DaemonSet) |
+| **search-service** | Go 1.26 / Gin | 8083 | `db_search` | Go (eBPF DaemonSet) |
 | **payment-service** | Python 3.11 / FastAPI | 8084 | `db_payment` | Python (init container) |
 | **auth-service** | C# / .NET 8 | 8085 | `db_auth` | .NET (init container) |
 | **ai-assistant** | Python 3.11 / FastAPI + LiteLLM | 8086 | -- | Python (init) + OTLP LLM traces |
