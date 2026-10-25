@@ -6,7 +6,7 @@
 
     <groupId>com.site24x7.labs</groupId>
     <artifactId>chaos-sdk-parent</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>pom</packaging>
 
     <name>Site24x7 Labs Chaos SDK</name>
@@ -24,14 +24,6 @@
         <url>https://github.com/site24x7/observe-labs</url>
         <connection>scm:git:https://github.com/site24x7/observe-labs.git</connection>
     </scm>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/site24x7/observe-labs</url>
-        </repository>
-    </distributionManagement>
 
     <modules>
         <module>chaos-sdk-core</module>

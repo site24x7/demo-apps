@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.site24x7.labs</groupId>
         <artifactId>chaos-sdk-parent</artifactId>
-        <version>1.2.0</version>
+        <version>1.2.1</version>
     </parent>
 
     <artifactId>chaos-sdk-core</artifactId>
