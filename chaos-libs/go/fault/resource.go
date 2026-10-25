@@ -33,6 +33,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"sync"
@@ -504,6 +505,9 @@ func (r *ResourceFaultInjector) applyNPlusOne(rule chaos.FaultRuleConfig) {
 	primaryTable := chaos.GetConfigString(rule, "primary_table", "orders")
 	relatedTable := chaos.GetConfigString(rule, "related_table", "order_items")
 	joinColumn := chaos.GetConfigString(rule, "join_column", "order_id")
+	if !validIdentifiers("n_plus_one", primaryTable, relatedTable, joinColumn) {
+		return
+	}
 	rowCount := chaos.Clamp(chaos.GetConfigInt(rule, "row_count", 50), 1, 500)
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
@@ -551,6 +555,9 @@ func (r *ResourceFaultInjector) applyFullTableScan(rule chaos.FaultRuleConfig) {
 		return
 	}
 	tableName := chaos.GetConfigString(rule, "table_name", "orders")
+	if !validIdentifiers("full_table_scan", tableName) {
+		return
+	}
 	rowLimit := chaos.Clamp(chaos.GetConfigInt(rule, "row_limit", 10000), 100, 1000000)
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
@@ -589,6 +596,9 @@ func (r *ResourceFaultInjector) applyThunderingHerd(rule chaos.FaultRuleConfig) 
 		return
 	}
 	tableName := chaos.GetConfigString(rule, "table_name", "products")
+	if !validIdentifiers("thundering_herd", tableName) {
+		return
+	}
 	concurrency := chaos.Clamp(chaos.GetConfigInt(rule, "concurrency", 50), 2, 500)
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
@@ -632,6 +642,9 @@ func (r *ResourceFaultInjector) applyUnboundedQuery(rule chaos.FaultRuleConfig) 
 		return
 	}
 	tableName := chaos.GetConfigString(rule, "table_name", "orders")
+	if !validIdentifiers("unbounded_query", tableName) {
+		return
+	}
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
 	log.Printf("[chaos-sdk] Injecting unbounded query on %s for %dms", tableName, durationMs)
@@ -697,4 +710,21 @@ func (r *ResourceFaultInjector) applyConnectionLeak(rule chaos.FaultRuleConfig) 
 		r.active.Store(false)
 		log.Printf("[chaos-sdk] Connection leak fault completed, %d connections returned", len(leaked))
 	}()
+}
+
+// sqlIdentifier matches a plain or schema-qualified SQL identifier.
+var sqlIdentifier = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,63}(\.[A-Za-z_][A-Za-z0-9_]{0,63})?$`)
+
+// validIdentifiers reports whether every table/column name is a plain SQL
+// identifier. The app-induced DB faults put these names into SQL text (they
+// cannot be bound as parameters) and they come from the fault rule, so
+// anything else is refused rather than run against the app's database.
+func validIdentifiers(fault string, names ...string) bool {
+	for _, n := range names {
+		if !sqlIdentifier.MatchString(n) {
+			log.Printf("[chaos-sdk] %s: refusing invalid table/column name %q", fault, n)
+			return false
+		}
+	}
+	return true
 }

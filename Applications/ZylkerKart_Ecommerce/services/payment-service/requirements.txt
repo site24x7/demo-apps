@@ -6,4 +6,4 @@ pydantic==2.5.3
 python-dotenv==1.0.0
 httpx==0.26.0
 python-multipart==0.0.6
-site24x7-chaos[fastapi]==1.2.2
+site24x7-chaos[fastapi]==1.2.3

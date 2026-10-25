@@ -6,7 +6,7 @@
 
     <groupId>com.site24x7.labs</groupId>
     <artifactId>chaos-sdk-parent</artifactId>
-    <version>1.2.2</version>
+    <version>1.2.3</version>
     <packaging>pom</packaging>
 
     <name>Site24x7 Labs Chaos SDK</name>

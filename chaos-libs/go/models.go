@@ -153,7 +153,7 @@ const DefaultUDSReconnectBackoffMs = 5000
 const DefaultConfigDir = "/var/site24x7-labs/faults"
 
 // SDKVersion is the version of this SDK.
-const SDKVersion = "1.2.2"
+const SDKVersion = "1.2.3"
 
 // SDKLanguage identifies this SDK in heartbeat files.
 const SDKLanguage = "go"
