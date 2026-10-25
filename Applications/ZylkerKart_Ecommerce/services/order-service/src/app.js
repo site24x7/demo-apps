@@ -29,11 +29,13 @@ const PORT = process.env.PORT || 8082;
   // Registering BEFORE routes ensures the middleware intercepts requests.
   try {
     const { initChaos } = await import('site24x7-chaos-sdk');
-    initChaos(app, {
+    const chaosEngine = initChaos(app, {
       appName: process.env.CHAOS_SDK_APP_NAME || 'order-service',
       configDir: process.env.CHAOS_SDK_CONFIG_DIR || '/var/site24x7-labs/faults',
       enabled: process.env.CHAOS_SDK_ENABLED !== 'false',
     });
+    // Register the MySQL pool for app-induced DB faults (n_plus_one, full_table_scan, etc.)
+    chaosEngine.resourceFaultInjector?.registerDb(db);
   } catch (err) {
     console.warn('[chaos-sdk] Failed to initialize Chaos SDK:', err.message);
   }
