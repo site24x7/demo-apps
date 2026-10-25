@@ -44,6 +44,11 @@ on:
           - auth-service
           - ai-assistant
 
+# One run at a time so an older run can never push :latest after a newer one; a newer queued run replaces an older queued one, and in-progress runs are never cancelled (a half-pushed multi-arch manifest is worse than a late one)
+concurrency:
+  group: zylkerkart-docker
+  cancel-in-progress: false
+
 env:
   SERVICES_ROOT: Applications/ZylkerKart_Ecommerce/services
 

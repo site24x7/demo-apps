@@ -38,7 +38,7 @@ on:
       - "chaos-libs/**"
   workflow_dispatch:
 
-# Queue runs so two builds never race on deleting/re-creating the release
+# One run at a time (push and manual runs share this group) so an older build can never re-create the "latest" release after a newer one
 concurrency:
   group: zylkerkart-baremetal-release
   cancel-in-progress: false
@@ -556,7 +556,7 @@ jobs:
         id: version
         run: |
           echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "chaos=$(cat ${CHAOS_LIBS}/VERSION)" >> "$GITHUB_OUTPUT"
+          echo "chaos=$(cat "${CHAOS_LIBS}/VERSION")" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
