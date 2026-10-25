@@ -43,3 +43,36 @@ def get_pool():
 
 def get_connection():
     return get_pool().get_connection()
+
+
+class _PooledCursor:
+    """Cursor that hands its pooled connection back when closed."""
+
+    def __init__(self, conn):
+        self._conn = conn
+        self._cursor = conn.cursor()
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+    def close(self):
+        try:
+            self._cursor.close()
+        finally:
+            self._conn.close()
+
+
+class ChaosDb:
+    """Exposes the payment pool to the Chaos SDK's app-induced DB faults.
+
+    The SDK calls cursor() to run queries and connect() to hold connections
+    (connection_leak). MySQLConnectionPool has neither, so both are mapped onto
+    the app's own pool: the faults compete with real requests for the same
+    10 connections, which is what makes them visible.
+    """
+
+    def cursor(self):
+        return _PooledCursor(get_pool().get_connection())
+
+    def connect(self):
+        return get_pool().get_connection()

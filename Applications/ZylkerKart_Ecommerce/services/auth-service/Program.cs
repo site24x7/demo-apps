@@ -78,6 +78,26 @@ if (chaosEnabled)
 
 var app = builder.Build();
 
+// Register a DB connection factory for app-induced DB faults (n_plus_one, full_table_scan, etc.)
+if (chaosEnabled)
+{
+    try
+    {
+        var resourceInjector = app.Services.GetService<Site24x7.Chaos.Fault.ResourceFaultInjector>();
+        resourceInjector?.RegisterDbFactory(() =>
+        {
+            // MySqlConnector is the ADO.NET driver underneath Pomelo.EntityFrameworkCore.MySql
+            var conn = new MySqlConnector.MySqlConnection(connectionString);
+            conn.Open();
+            return conn;
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[chaos-sdk] Failed to register DB factory: {ex.Message}");
+    }
+}
+
 // Retry DB connection
 using (var scope = app.Services.CreateScope())
 {

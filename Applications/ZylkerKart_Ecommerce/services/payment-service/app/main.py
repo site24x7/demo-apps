@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import payment
-from app.config.database import get_pool
+from app.config.database import ChaosDb, get_pool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,12 +14,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+_chaos_engine = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: initialize DB pool
     logger.info("Payment Service starting up...")
     get_pool()
+    # Register the DB for app-induced DB faults (n_plus_one, full_table_scan, etc.)
+    if _chaos_engine is not None and hasattr(_chaos_engine, "resource_fault_injector"):
+        _chaos_engine.resource_fault_injector.register_db(ChaosDb())
     yield
     # Shutdown
     logger.info("Payment Service shutting down...")
@@ -45,7 +50,7 @@ app.add_middleware(
 try:
     from site24x7_chaos.fastapi import init_chaos
 
-    init_chaos(
+    _chaos_engine = init_chaos(
         app,
         app_name=os.getenv("CHAOS_SDK_APP_NAME", "payment-service"),
         config_dir=os.getenv("CHAOS_SDK_CONFIG_DIR", "/var/site24x7-labs/faults"),

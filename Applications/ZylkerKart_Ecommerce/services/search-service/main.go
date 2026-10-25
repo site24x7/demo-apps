@@ -18,6 +18,7 @@ import (
 
 func main() {
 	// Initialize Site24x7 Labs Chaos SDK
+	var resourceInjector *fault.ResourceFaultInjector
 	chaosInstance, err := chaos.InitChaos(
 		config.GetEnv("CHAOS_SDK_APP_NAME", "search-service"),
 		chaos.WithFramework("gin", "1.10.0"),
@@ -28,13 +29,19 @@ func main() {
 		config.ChaosEngine = chaosInstance.Engine
 		defer chaosInstance.Shutdown()
 		// Install resource fault injector (cpu_burn, memory_pressure, etc.)
-		fault.NewResourceFaultInjector(chaosInstance.Engine).Install()
+		resourceInjector = fault.NewResourceFaultInjector(chaosInstance.Engine)
+		resourceInjector.Install()
 	}
 
 	// Initialize database and Redis (uses ChaosEngine if set)
 	config.InitDB()
 	defer config.DB.Close()
 	config.InitRedis()
+
+	// Register the DB for app-induced DB faults (n_plus_one, full_table_scan, etc.)
+	if resourceInjector != nil {
+		resourceInjector.RegisterDB(config.DB)
+	}
 
 	// Set Gin mode
 	if os.Getenv("GIN_MODE") == "release" {
