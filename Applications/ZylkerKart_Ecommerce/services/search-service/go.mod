@@ -7,7 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/redis/go-redis/v9 v9.23.0
-	github.com/site24x7/observe-labs/sdks/go v1.2.3
+	github.com/site24x7/observe-labs/sdks/go v1.2.5
 )
 
 require (

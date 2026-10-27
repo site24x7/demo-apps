@@ -37,6 +37,11 @@ func HTTPMiddleware(engine *chaos.Engine) func(http.Handler) http.Handler {
 			rules := engine.FindMatchingRules(httpFaultPrefix, r.URL.Path)
 
 			for _, rule := range rules {
+				// "http_" also prefixes the outbound http_client_* rules,
+				// which are not inbound faults.
+				if strings.HasPrefix(rule.FaultType, "http_client_") {
+					continue
+				}
 				if !engine.ShouldFire(rule) {
 					continue
 				}

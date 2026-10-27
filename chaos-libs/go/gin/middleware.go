@@ -25,11 +25,20 @@ func ChaosMiddleware(engine *chaos.Engine) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// Wrap gin's next handler as an http.Handler
+		proceeded := false
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			proceeded = true
 			c.Next()
 		})
 
 		// Run the chaos middleware
 		middleware(next).ServeHTTP(c.Writer, c.Request)
+
+		// When the fault answered the request itself, stop Gin's chain:
+		// otherwise Gin runs the remaining handlers after this middleware
+		// returns, and the real handler executes (and writes) anyway.
+		if !proceeded {
+			c.Abort()
+		}
 	}
 }

@@ -43,6 +43,11 @@ import (
 	chaos "github.com/site24x7/observe-labs/sdks/go"
 )
 
+// Longest a resource fault runs. Agent experiments (sdk-cpu-pressure etc.) run
+// for minutes and stop the fault early by removing its rule, so this is only a
+// safety cap for a rule nobody removes.
+const maxResourceDurationMs = 600_000
+
 // ---------------------------------------------------------------------------
 // ResourceFaultInjector
 // ---------------------------------------------------------------------------
@@ -53,12 +58,16 @@ type ResourceFaultInjector struct {
 	engine *chaos.Engine
 	active atomic.Bool
 
+	// runMu guards the running fault: stop is closed to end it early (rule
+	// removed, kill switch, SDK disabled) and activeRule is the rule it runs for.
+	runMu      sync.Mutex
+	stop       chan struct{}
+	activeRule string
+
 	// db is the app's own database connection, registered via RegisterDB().
 	// Used by app-induced DB faults (n_plus_one, full_table_scan, etc.)
 	dbMu sync.RWMutex
 	db   *sql.DB
-	// leakedConns holds connections opened by connection_leak fault
-	leakedConns []*sql.DB
 }
 
 // NewResourceFaultInjector creates a new injector. Call Install() to register
@@ -91,11 +100,17 @@ func (r *ResourceFaultInjector) RegisterDB(db *sql.DB) {
 
 // evaluateAndApply finds the first matching resource fault rule and applies it.
 func (r *ResourceFaultInjector) evaluateAndApply() {
-	if !r.engine.Enabled() {
+	if r.active.Load() {
+		// A running fault ends early once its rule is gone: removed by the
+		// experiment's revert, cleared by the kill switch, or the SDK disabled.
+		if !r.engine.Enabled() || !r.ruleStillActive() {
+			r.stopActive()
+		} else {
+			log.Println("[chaos-sdk] Resource fault already active, skipping")
+		}
 		return
 	}
-	if r.active.Load() {
-		log.Println("[chaos-sdk] Resource fault already active, skipping")
+	if !r.engine.Enabled() {
 		return
 	}
 
@@ -147,16 +162,89 @@ func (r *ResourceFaultInjector) evaluateAndApply() {
 	}
 }
 
+// begin marks a fault as running for rule and returns the channel that is
+// closed if it must stop early.
+func (r *ResourceFaultInjector) begin(rule chaos.FaultRuleConfig) <-chan struct{} {
+	r.runMu.Lock()
+	defer r.runMu.Unlock()
+	r.stop = make(chan struct{})
+	r.activeRule = ruleKey(rule)
+	r.active.Store(true)
+	return r.stop
+}
+
+// end marks the running fault as finished.
+func (r *ResourceFaultInjector) end() {
+	r.runMu.Lock()
+	r.stop = nil
+	r.activeRule = ""
+	r.runMu.Unlock()
+	r.active.Store(false)
+}
+
+// stopActive ends the running fault early.
+func (r *ResourceFaultInjector) stopActive() {
+	r.runMu.Lock()
+	defer r.runMu.Unlock()
+	if r.stop != nil {
+		log.Printf("[chaos-sdk] Rule %s removed — stopping its resource fault", r.activeRule)
+		close(r.stop)
+		r.stop = nil
+	}
+}
+
+func (r *ResourceFaultInjector) ruleStillActive() bool {
+	r.runMu.Lock()
+	key := r.activeRule
+	r.runMu.Unlock()
+	for _, rule := range r.engine.GetRules() {
+		if rule.Enabled && ruleKey(rule) == key {
+			return true
+		}
+	}
+	return false
+}
+
+func ruleKey(rule chaos.FaultRuleConfig) string {
+	if rule.ID != "" {
+		return rule.ID
+	}
+	return string(rule.FaultType)
+}
+
+// hold waits for d or until stop is closed. It reports whether the fault ran
+// its full duration.
+func hold(stop <-chan struct{}, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-t.C:
+		return true
+	case <-stop:
+		return false
+	}
+}
+
+// stopped reports whether stop has been closed.
+func stopped(stop <-chan struct{}) bool {
+	select {
+	case <-stop:
+		return true
+	default:
+		return false
+	}
+}
+
 // ---------------------------------------------------------------------------
 // 1. Thread pool exhaustion — leaked goroutines
 // ---------------------------------------------------------------------------
 
 func (r *ResourceFaultInjector) applyThreadPoolExhaustion(rule chaos.FaultRuleConfig) {
 	threadCount := chaos.Clamp(chaos.GetConfigInt(rule, "thread_count", 10), 1, 50)
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting goroutine leak: %d goroutines for %dms", threadCount, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	// done channel is closed after duration to release all goroutines
 	done := make(chan struct{})
@@ -173,11 +261,11 @@ func (r *ResourceFaultInjector) applyThreadPoolExhaustion(rule chaos.FaultRuleCo
 		}()
 	}
 
-	// Cleanup after duration
+	// Cleanup after duration (or when stopped)
 	go func() {
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, time.Duration(durationMs)*time.Millisecond)
 		close(done)
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Goroutine leak fault completed")
 	}()
 }
@@ -188,10 +276,10 @@ func (r *ResourceFaultInjector) applyThreadPoolExhaustion(rule chaos.FaultRuleCo
 
 func (r *ResourceFaultInjector) applyMemoryPressure(rule chaos.FaultRuleConfig) {
 	allocationMB := chaos.Clamp(chaos.GetConfigInt(rule, "allocation_mb", 64), 1, 512)
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting memory pressure: %dMB for %dms", allocationMB, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	blocks := make([][]byte, 0, allocationMB)
 	func() {
@@ -213,11 +301,11 @@ func (r *ResourceFaultInjector) applyMemoryPressure(rule chaos.FaultRuleConfig) 
 
 	// Hold for duration, then release
 	go func() {
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, time.Duration(durationMs)*time.Millisecond)
 		// Release references — GC will collect
 		blocks = nil //nolint:ineffassign
 		runtime.GC() // Hint GC
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Memory pressure fault completed, memory released")
 	}()
 }
@@ -228,10 +316,10 @@ func (r *ResourceFaultInjector) applyMemoryPressure(rule chaos.FaultRuleConfig) 
 
 func (r *ResourceFaultInjector) applyCPUBurn(rule chaos.FaultRuleConfig) {
 	threadCount := chaos.Clamp(chaos.GetConfigInt(rule, "thread_count", 2), 1, 8)
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting CPU burn: %d threads for %dms", threadCount, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
 	var completed atomic.Int32
@@ -242,7 +330,7 @@ func (r *ResourceFaultInjector) applyCPUBurn(rule chaos.FaultRuleConfig) {
 			defer runtime.UnlockOSThread()
 
 			x := 1.1
-			for time.Now().Before(deadline) {
+			for time.Now().Before(deadline) && !stopped(stop) {
 				// Tight math loop — burns CPU
 				for j := 0; j < 10000; j++ {
 					x = math.Sin(x)*math.Cos(x) + math.Sqrt(math.Abs(x))
@@ -251,7 +339,7 @@ func (r *ResourceFaultInjector) applyCPUBurn(rule chaos.FaultRuleConfig) {
 			_ = x // prevent optimisation
 
 			if int(completed.Add(1)) == threadCount {
-				r.active.Store(false)
+				r.end()
 				log.Printf("[chaos-sdk] CPU burn fault completed (%d threads)", threadCount)
 			}
 		}()
@@ -264,10 +352,10 @@ func (r *ResourceFaultInjector) applyCPUBurn(rule chaos.FaultRuleConfig) {
 
 func (r *ResourceFaultInjector) applyGCPressure(rule chaos.FaultRuleConfig) {
 	allocRateMBPerSec := chaos.Clamp(chaos.GetConfigInt(rule, "allocation_rate_mb_per_sec", 10), 1, 100)
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting GC pressure: %dMB/sec for %dms", allocRateMBPerSec, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
@@ -282,8 +370,8 @@ func (r *ResourceFaultInjector) applyGCPressure(rule chaos.FaultRuleConfig) {
 		for {
 			select {
 			case <-ticker.C:
-				if time.Now().After(deadline) {
-					r.active.Store(false)
+				if time.Now().After(deadline) || stopped(stop) {
+					r.end()
 					log.Println("[chaos-sdk] GC pressure fault completed")
 					return
 				}
@@ -302,10 +390,10 @@ func (r *ResourceFaultInjector) applyGCPressure(rule chaos.FaultRuleConfig) {
 // ---------------------------------------------------------------------------
 
 func (r *ResourceFaultInjector) applyThreadDeadlock(rule chaos.FaultRuleConfig) {
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting simulated deadlock for %dms", durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	// done channel released after duration
 	done := make(chan struct{})
@@ -324,9 +412,9 @@ func (r *ResourceFaultInjector) applyThreadDeadlock(rule chaos.FaultRuleConfig) 
 	}
 
 	go func() {
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, time.Duration(durationMs)*time.Millisecond)
 		close(done)
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Simulated deadlock fault completed")
 	}()
 }
@@ -337,10 +425,10 @@ func (r *ResourceFaultInjector) applyThreadDeadlock(rule chaos.FaultRuleConfig) 
 
 func (r *ResourceFaultInjector) applyDiskFill(rule chaos.FaultRuleConfig) {
 	allocationMB := chaos.Clamp(chaos.GetConfigInt(rule, "allocation_mb", 64), 1, 512)
-	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 60000)
+	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, maxResourceDurationMs)
 
 	log.Printf("[chaos-sdk] Injecting disk fill: %dMB for %dms", allocationMB, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	tempDir := os.TempDir()
 	tempFiles := make([]string, 0, allocationMB)
@@ -361,11 +449,11 @@ func (r *ResourceFaultInjector) applyDiskFill(rule chaos.FaultRuleConfig) {
 
 	// Hold for duration, then clean up
 	go func() {
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, time.Duration(durationMs)*time.Millisecond)
 		for _, fp := range tempFiles {
 			_ = os.Remove(fp) // ignore errors
 		}
-		r.active.Store(false)
+		r.end()
 		log.Printf("[chaos-sdk] Disk fill fault completed, %d temp files cleaned up", len(tempFiles))
 	}()
 }
@@ -379,12 +467,16 @@ func (r *ResourceFaultInjector) applyProcessExit(rule chaos.FaultRuleConfig) {
 	exitCode := chaos.Clamp(chaos.GetConfigInt(rule, "exit_code", 1), 1, 255)
 
 	log.Printf("[chaos-sdk] Injecting process exit: exit_code=%d delay=%ds", exitCode, delaySeconds)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		if delaySeconds > 0 {
 			log.Printf("[chaos-sdk] Process exit: waiting %ds before terminating...", delaySeconds)
-			time.Sleep(time.Duration(delaySeconds) * time.Second)
+			if !hold(stop, time.Duration(delaySeconds)*time.Second) {
+				r.end()
+				log.Println("[chaos-sdk] Process exit cancelled before it fired")
+				return
+			}
 		}
 		log.Printf("[chaos-sdk] CHAOS FAULT: Terminating process with exit code %d — simulating application crash", exitCode)
 		// Use os.Exit() for immediate termination — K8s will detect
@@ -402,7 +494,7 @@ func (r *ResourceFaultInjector) applyLogFlood(rule chaos.FaultRuleConfig) {
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
 	log.Printf("[chaos-sdk] Injecting log flood: %dMB/sec for %dms", rateMBPerSec, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	chunk := make([]byte, 1024*1024)
 	for i := range chunk {
@@ -416,8 +508,8 @@ func (r *ResourceFaultInjector) applyLogFlood(rule chaos.FaultRuleConfig) {
 		for {
 			select {
 			case <-ticker.C:
-				if time.Now().After(deadline) {
-					r.active.Store(false)
+				if time.Now().After(deadline) || stopped(stop) {
+					r.end()
 					log.Println("[chaos-sdk] Log flood fault completed")
 					return
 				}
@@ -442,7 +534,7 @@ func (r *ResourceFaultInjector) applyConnPoolExhaust(rule chaos.FaultRuleConfig)
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 
 	log.Printf("[chaos-sdk] Injecting connpool exhaustion: %d connections to %s for %dms", connCount, addr, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	conns := make([]net.Conn, 0, connCount)
 	for i := 0; i < connCount; i++ {
@@ -456,11 +548,11 @@ func (r *ResourceFaultInjector) applyConnPoolExhaust(rule chaos.FaultRuleConfig)
 	log.Printf("[chaos-sdk] ConnPool: holding %d connections to %s", len(conns), addr)
 
 	go func() {
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, time.Duration(durationMs)*time.Millisecond)
 		for _, c := range conns {
 			c.Close() //nolint:errcheck
 		}
-		r.active.Store(false)
+		r.end()
 		log.Printf("[chaos-sdk] ConnPool exhaustion fault completed, %d connections released", len(conns))
 	}()
 }
@@ -473,11 +565,11 @@ func (r *ResourceFaultInjector) applyStartupDelay(rule chaos.FaultRuleConfig) {
 	delayMs := chaos.Clamp(chaos.GetConfigInt(rule, "delay_ms", 5000), 100, 120000)
 
 	log.Printf("[chaos-sdk] Injecting startup delay: %dms", delayMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
-		time.Sleep(time.Duration(delayMs) * time.Millisecond)
-		r.active.Store(false)
+		hold(stop, time.Duration(delayMs)*time.Millisecond)
+		r.end()
 		log.Printf("[chaos-sdk] Startup delay fault completed (%dms elapsed)", delayMs)
 	}()
 }
@@ -513,11 +605,11 @@ func (r *ResourceFaultInjector) applyNPlusOne(rule chaos.FaultRuleConfig) {
 
 	log.Printf("[chaos-sdk] Injecting N+1 query: %s → %s x%d for %dms",
 		primaryTable, relatedTable, rowCount, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
-		for time.Now().Before(deadline) {
+		for time.Now().Before(deadline) && !stopped(stop) {
 			rows, err := db.QueryContext(context.Background(),
 				fmt.Sprintf("SELECT id FROM %s LIMIT %d", primaryTable, rowCount))
 			if err != nil {
@@ -537,9 +629,9 @@ func (r *ResourceFaultInjector) applyNPlusOne(rule chaos.FaultRuleConfig) {
 				db.QueryRowContext(context.Background(),
 					fmt.Sprintf("SELECT * FROM %s WHERE %s = ?", relatedTable, joinColumn), id) //nolint:errcheck
 			}
-			time.Sleep(500 * time.Millisecond)
+			hold(stop, 500*time.Millisecond)
 		}
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] N+1 query fault completed")
 	}()
 }
@@ -563,11 +655,11 @@ func (r *ResourceFaultInjector) applyFullTableScan(rule chaos.FaultRuleConfig) {
 
 	log.Printf("[chaos-sdk] Injecting full table scan: SELECT * FROM %s LIMIT %d for %dms",
 		tableName, rowLimit, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
-		for time.Now().Before(deadline) {
+		for time.Now().Before(deadline) && !stopped(stop) {
 			rows, err := db.QueryContext(context.Background(),
 				fmt.Sprintf("SELECT * FROM %s LIMIT %d", tableName, rowLimit))
 			if err != nil {
@@ -578,9 +670,9 @@ func (r *ResourceFaultInjector) applyFullTableScan(rule chaos.FaultRuleConfig) {
 			for rows.Next() {
 			}
 			rows.Close()
-			time.Sleep(200 * time.Millisecond)
+			hold(stop, 200*time.Millisecond)
 		}
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Full table scan fault completed")
 	}()
 }
@@ -604,11 +696,11 @@ func (r *ResourceFaultInjector) applyThunderingHerd(rule chaos.FaultRuleConfig) 
 
 	log.Printf("[chaos-sdk] Injecting thundering herd: %d concurrent queries on %s for %dms",
 		concurrency, tableName, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
-		for time.Now().Before(deadline) {
+		for time.Now().Before(deadline) && !stopped(stop) {
 			var wg sync.WaitGroup
 			for i := 0; i < concurrency; i++ {
 				wg.Add(1)
@@ -624,9 +716,9 @@ func (r *ResourceFaultInjector) applyThunderingHerd(rule chaos.FaultRuleConfig) 
 				}()
 			}
 			wg.Wait()
-			time.Sleep(1 * time.Second)
+			hold(stop, 1*time.Second)
 		}
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Thundering herd fault completed")
 	}()
 }
@@ -648,11 +740,11 @@ func (r *ResourceFaultInjector) applyUnboundedQuery(rule chaos.FaultRuleConfig) 
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
 	log.Printf("[chaos-sdk] Injecting unbounded query on %s for %dms", tableName, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
 		deadline := time.Now().Add(time.Duration(durationMs) * time.Millisecond)
-		for time.Now().Before(deadline) {
+		for time.Now().Before(deadline) && !stopped(stop) {
 			// No WHERE, no LIMIT — full table read
 			rows, err := db.QueryContext(context.Background(),
 				fmt.Sprintf("SELECT * FROM %s", tableName))
@@ -663,9 +755,9 @@ func (r *ResourceFaultInjector) applyUnboundedQuery(rule chaos.FaultRuleConfig) 
 			for rows.Next() {
 			}
 			rows.Close()
-			time.Sleep(100 * time.Millisecond)
+			hold(stop, 100*time.Millisecond)
 		}
-		r.active.Store(false)
+		r.end()
 		log.Println("[chaos-sdk] Unbounded query fault completed")
 	}()
 }
@@ -684,30 +776,34 @@ func (r *ResourceFaultInjector) applyConnectionLeak(rule chaos.FaultRuleConfig) 
 	durationMs := chaos.Clamp(chaos.GetConfigInt(rule, "duration_ms", 30000), 1000, 300000)
 
 	log.Printf("[chaos-sdk] Injecting connection leak: %d connections for %dms", leakCount, durationMs)
-	r.active.Store(true)
+	stop := r.begin(rule)
 
 	go func() {
-		// Get connections from the app's pool without releasing them
-		r.dbMu.Lock()
+		// Take connections from the app's pool and hold them. Each checkout
+		// gives up after a few seconds: once the pool is exhausted (the point
+		// of the fault) a plain db.Conn would block forever, and the fault
+		// would then never reach its release below.
+		duration := time.Duration(durationMs) * time.Millisecond
 		leaked := make([]*sql.Conn, 0, leakCount)
-		for i := 0; i < leakCount; i++ {
-			conn, err := db.Conn(context.Background())
+		for i := 0; i < leakCount && !stopped(stop); i++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			conn, err := db.Conn(ctx)
+			cancel()
 			if err != nil {
-				log.Printf("[chaos-sdk] connection_leak: conn %d failed: %v", i, err)
+				log.Printf("[chaos-sdk] connection_leak: pool exhausted after %d connections (%v)", i, err)
 				break
 			}
 			leaked = append(leaked, conn)
 		}
-		r.dbMu.Unlock()
 
 		log.Printf("[chaos-sdk] connection_leak: %d connections leaked from app pool", len(leaked))
-		time.Sleep(time.Duration(durationMs) * time.Millisecond)
+		hold(stop, duration)
 
 		// Release all leaked connections
 		for _, c := range leaked {
 			c.Close() //nolint:errcheck
 		}
-		r.active.Store(false)
+		r.end()
 		log.Printf("[chaos-sdk] Connection leak fault completed, %d connections returned", len(leaked))
 	}()
 }

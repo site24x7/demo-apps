@@ -179,6 +179,14 @@ func (c *UDSClient) connectAndServe(ctx context.Context) {
 	defer connCancel()
 	go c.healthLoop(connCtx, conn)
 
+	// The scanner below blocks in Read until the agent sends something, so a
+	// cancelled ctx (Shutdown) would wait for the next message — possibly
+	// forever. Closing the connection unblocks it.
+	go func() {
+		<-connCtx.Done()
+		_ = conn.Close()
+	}()
+
 	scanner := bufio.NewScanner(conn)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
