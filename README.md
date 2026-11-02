@@ -8,7 +8,7 @@ This repository contains demo applications and automated deployment scripts for 
 
 | Application | Description | Tech Stack |
 |-------------|-------------|------------|
-| [ZylkerKart E-Commerce](Applications/ZylkerKart_Ecommerce/) | Polyglot microservices e-commerce platform with 6 services across 6 languages | Java, Node.js, Go, Python, C#/.NET, MySQL, Redis |
+| [ZylkerKart E-Commerce](Applications/ZylkerKart_Ecommerce/) | Polyglot microservices e-commerce platform with 7 services across 6 languages, including an AI shopping assistant with LLM observability | Java, Node.js, Go, Python, C#/.NET, MySQL, Redis, LiteLLM |
 
 ## Terraform Deployment
 
