@@ -21,13 +21,24 @@ Deploy ZylkerKart microservices on bare metal Linux servers using universal tar.
 │  (Java 17)   │     │  (Node.js 18)    │     │  (Go static bin) │
 └──────────────┘     └──────────────────┘     └──────────────────┘
 
-┌──────────────┐     ┌──────────────────┐
-│  Server 7    │     │  Server 8        │
-│  Payment Svc │     │  Storefront BFF  │
-│  Port: 8084  │     │  Port: 80        │
-│  (Python 3.11)│    │  (Java 17)       │
-└──────────────┘     └──────────────────┘
+┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Server 7    │     │  Server 8        │     │  Server 9        │
+│  Payment Svc │     │  AI Assistant    │     │  Storefront BFF  │
+│  Port: 8084  │     │  Port: 8086      │     │  Port: 80        │
+│  (Python 3.11)│    │  (Python 3.11)   │     │  (Java 17)       │
+└──────────────┘     └──────────────────┘     └──────────────────┘
 ```
+
+The AI Assistant is optional: the shop works without it, only the chat widget stops answering. It needs an LLM backend (Ollama by default) reachable from its server.
+
+To connect the storefront to it, add these to `/etc/zylkerkart/storefront.env` (they are not in `storefront.env.example`; without them the storefront looks for `http://ai-assistant:8086`, which only resolves under Docker/Kubernetes):
+
+```env
+AI_SERVICE_URL=http://AI_SERVER_IP:8086
+AI_INTERNAL_TOKEN=<same value as AI_INTERNAL_TOKEN in ai-assistant.env>
+```
+
+Note: the AWS bare-metal Terraform (`Terraform Deployment/Baremetal`) does not provision an AI Assistant instance yet; deploy it by hand as described below.
 
 ## Artifacts
 
@@ -71,6 +82,7 @@ The scripts check for prerequisites but do **not** install them — this keeps t
 | Order Service | Install Node.js 18 via [NodeSource](https://github.com/nodesource/distributions) | Same |
 | Search Service | **None** (static binary) | **None** |
 | Payment Service | `apt install python3.11 python3.11-venv python3-pip` | `yum install python3.11 python3.11-pip` |
+| AI Assistant | `apt install python3.11 python3.11-venv python3-pip` plus an LLM backend (e.g. [Ollama](https://ollama.com) with `ollama pull gemma4`) | `yum install python3.11 python3.11-pip` plus an LLM backend |
 | Auth Service | Install [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0) | Same |
 
 ## Deployment Order
@@ -85,7 +97,8 @@ Deploy infrastructure first, then services (backend → frontend):
 5. Search Service  → install.sh
 6. Payment Service → install.sh
 7. Order Service   → install.sh
-8. Storefront      → install.sh
+8. AI Assistant    → install.sh   (optional; needs Product, Order and Search up)
+9. Storefront      → install.sh
 ```
 
 ## Step-by-Step Deployment
@@ -130,9 +143,9 @@ sudo systemctl start zylkerkart-redis
 redis-cli ping   # → PONG
 ```
 
-### 3. Deploy a Microservice (Servers 3–8)
+### 3. Deploy a Microservice (Servers 3–9)
 
-All 6 services follow the same pattern:
+All 7 services (`auth-service`, `product-service`, `search-service`, `payment-service`, `order-service`, `ai-assistant`, `storefront`) follow the same pattern:
 
 ```bash
 # Download (example: auth-service)
@@ -171,6 +184,7 @@ curl http://ORDER_IP:8082/health           # Order Service
 curl http://SEARCH_IP:8083/health          # Search Service
 curl http://PAYMENT_IP:8084/health         # Payment Service
 curl http://AUTH_IP:8085/health            # Auth Service
+curl http://AI_IP:8086/health              # AI Assistant (status "degraded" if the LLM is unreachable)
 
 # Test storefront UI
 curl -s http://STOREFRONT_IP/ | head -20
