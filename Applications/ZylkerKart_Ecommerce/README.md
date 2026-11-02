@@ -16,6 +16,7 @@ ZylkerKart is a full-featured e-commerce platform built with **7 microservices a
 - [Deployment](#-deployment)
   - [Docker Compose](#-docker-compose)
   - [Kubernetes](#-kubernetes)
+  - [Bare metal](baremetal/README.md)
 - [Site24x7 APM Integration](#-site24x7-apm-integration)
 
 ---
@@ -364,7 +365,7 @@ docker compose up --build
 
 ```bash
 S247_APM_ENABLED=true S247_LICENSE_KEY=<your_key> docker compose --profile apm up --build -d
-``
+```
 
 Or create a `.env` file:
 
@@ -420,26 +421,26 @@ Each service is instrumented using language-specific Site24x7 APM agents:
 
 ### ☸ Kubernetes
 
-#### Deploy
+The supported way to run ZylkerKart on Kubernetes is the **Terraform deployment** in
+[`Terraform Deployment/`](../../Terraform%20Deployment/README.md). It creates the
+EKS or AKS cluster and deploys all 7 services (including the AI assistant), MySQL,
+Redis, the ingress, the Site24x7 APM agents, the Server agent and the chaos agent.
 
-Run the deploy script — it will interactively prompt for your Site24x7 license key:
+#### Shell scripts (legacy)
 
-```bash
-./scripts/deploy-k8s.sh
+`scripts/deploy-k8s.sh` and `scripts/deploy-k8s-chaos.sh` are older script-based
+deployers. They expect manifests that are **not in this repository**
+(`k8s/namespace.yaml`, `configmap.yaml`, `mysql.yaml`, `redis.yaml`,
+`go-apm-daemonset.yaml`, `k8s/services/*.yaml` and `k8s/deploy/`), so they won't run
+from a fresh checkout. Neither covers the AI assistant.
+
+#### What's in `k8s/`
+
 ```
-
-The script performs 10 sequential steps:
-
-1. **Build Docker images** (prompts: local-only or push to Docker Hub)
-2. **Create namespace** (`zylkerkart`)
-3. **Apply ConfigMap** (injects Site24x7 key if provided)
-4. **Deploy MySQL** (waits for ready)
-5. **Deploy Redis** (waits for ready)
-6. **Deploy application services** (everything under `k8s/services/`, waits for ready)
-7. **Apply Ingress** rules
-8. **Deploy Site24x7 Go APM DaemonSet** (if key provided)
-9. **Deploy Site24x7 Server Agent** DaemonSet (if key provided)
-10. **Configure MySQL monitoring** in Site24x7 agent (auto-runs `AgentManager.sh mysql --add_instance`)
+k8s/
+├── ingress.yaml             # Ingress rules for the storefront (zylkerkart.local)
+└── deployments-patch.yaml   # Resource/liveness patches for storefront and auth-service
+```
 
 #### Access (Kubernetes)
 
@@ -460,20 +461,6 @@ kubectl -n zylkerkart port-forward svc/storefront 8080:80
 kubectl -n zylkerkart port-forward svc/product-service 8081:8081
 ```
 
-#### K8s Manifests
-
-```
-k8s/
-├── namespace.yaml         # zylkerkart namespace
-├── configmap.yaml         # Shared config (DB, Redis, JWT, S247 key)
-├── mysql.yaml             # MySQL Deployment + PVC + Service
-├── redis.yaml             # Redis Deployment + Service
-├── services.yaml          # Microservice Deployments + Services
-├── ingress.yaml           # Ingress rules for storefront
-├── go-apm-daemonset.yaml  # Site24x7 Go APM eBPF DaemonSet
-└── site24x7-agent.yaml    # Site24x7 Server Agent DaemonSet + RBAC + KSM
-```
-
 ---
 
 ## 📊 Site24x7 APM Integration
@@ -490,40 +477,36 @@ S247_APM_ENABLED=true S247_LICENSE_KEY=<your_key> docker compose up
 
 ### Kubernetes
 
-The deploy script (`deploy-k8s.sh`) handles everything:
-- Prompts for the license key at runtime
-- Injects it into the ConfigMap and Kubernetes Secret
-- Deploys Go APM eBPF DaemonSet for search-service
-- Deploys Site24x7 Server Agent DaemonSet with auto MySQL monitoring
-- APM agents for Java, Node.js, Python, .NET, and Go are configured via init containers and environment variables in `services.yaml`
-
-> **AI assistant on Kubernetes:** the AI assistant is deployed by the Terraform Kubernetes deployment (EKS/AKS), which also wires its LLM settings and OTLP export. See [`Terraform Deployment/README.md`](../../Terraform%20Deployment/README.md). The shell-script path above does not include it.
+The Terraform deployment handles APM end to end: it injects the license key, attaches
+the Java, Node.js, Python and .NET agents through init containers, runs the Go eBPF
+agent as a DaemonSet for search-service, deploys the Site24x7 Server agent, and wires
+the AI assistant's LLM traces to the Site24x7 OTLP endpoint. See
+[`Terraform Deployment/README.md`](../../Terraform%20Deployment/README.md).
 
 ## 📁 Project Structure
 
 ```
-ZylkerKart/
-├── docker-compose.yml          # Docker Compose orchestration (9 containers + APM sidecar)
+ZylkerKart_Ecommerce/
+├── docker-compose.yml          # Docker Compose (MySQL, Redis, 7 services + optional Go APM sidecar)
 ├── README.md
-├── db/                         # MySQL initialization
-│   ├── Dockerfile
+├── db/                         # MySQL image
+│   ├── Dockerfile              # Builds 02-seed.sql from the CSV, then loads schema + seed
 │   ├── 01-schema.sql           # Database schema (5 databases, 17 tables)
-│   ├── 02-seed.sh              # Data seeding script
 │   ├── product_datasets.csv    # Product seed data
-│   └── seed/                   # Python seed loader
-├── k8s/                        # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── configmap.yaml
-│   ├── mysql.yaml
-│   ├── redis.yaml
-│   ├── services.yaml
+│   └── seed/
+│       └── generate_seed_sql.py
+├── baremetal/                  # Bare-metal (systemd) deployment, see baremetal/README.md
+│   ├── config/                 # <service>.env.example files
+│   ├── scripts/                # install.sh, setup-mysql.sh, setup-redis.sh
+│   └── systemd/                # Unit files
+├── k8s/
 │   ├── ingress.yaml
-│   ├── go-apm-daemonset.yaml
-│   └── site24x7-agent.yaml
-├── scripts/                    # Deployment scripts
-│   ├── build-all.sh            # Build all Docker images (local or push to Hub)
-│   ├── deploy-compose.sh       # Docker Compose deployment
-│   └── deploy-k8s.sh           # Kubernetes deployment (interactive)
+│   └── deployments-patch.yaml
+├── scripts/
+│   ├── build-all.sh            # Build all Docker images (local or push to Docker Hub)
+│   ├── deploy-compose.sh       # Docker Compose up/down/logs helper
+│   ├── deploy-k8s.sh           # Legacy K8s deploy (needs manifests not in the repo)
+│   └── deploy-k8s-chaos.sh     # Legacy K8s deploy of pre-built :chaos images
 └── services/                   # Microservices source code
     ├── product-service/        # Java 17 / Spring Boot 3
     ├── order-service/          # Node.js 18 / Express
