@@ -21,6 +21,8 @@ The platform is purpose-built for demonstrating **modern polyglot architectures*
   - [Enabling APM Monitoring](#enabling-apm-monitoring)
 - [Demo Credentials](#-demo-credentials)
 - [Deployment & Quick Start](#-deployment--quick-start)
+  - [Docker Compose](#docker-compose)
+  - [Kubernetes (k8s)](#kubernetes-k8s)
 - [Health & Verification Endpoints](#-health--verification-endpoints)
 - [Backend API Contracts](#-backend-api-contracts)
 
@@ -221,6 +223,8 @@ Pre-seeded accounts are immediately available for login:
 - Host ports: `8000` (API Gateway), `8080`, `8081`, `8082`, `8083`, `1521`, `5432`, `9092`
 
 ### Start Application
+### Docker Compose
+
 From the `Applications/ZylkerBank_Fintech` directory:
 
 ```bash
@@ -233,6 +237,36 @@ docker compose up -d
 # Start with Site24x7 APM monitoring:
 S247_APM_ENABLED=true S247_LICENSE_KEY=<your_key> docker compose --profile apm up -d
 ```
+
+### Kubernetes (k8s)
+
+ZylkerBank includes native Kubernetes manifests and deployment automation under [`k8s/`](k8s/):
+
+```bash
+# Deploy all datastores, microservices, and ingress to Kubernetes:
+./scripts/deploy-k8s.sh
+
+# Or with Site24x7 APM enabled:
+S247_LICENSE_KEY=<your_key> ./scripts/deploy-k8s.sh
+
+# Check pod and service status:
+./scripts/deploy-k8s.sh status
+
+# Redeploy a single microservice:
+./scripts/deploy-k8s.sh banking-portal
+
+# Teardown the zylkerbank namespace:
+./scripts/deploy-k8s.sh delete
+```
+
+#### What's in `k8s/`:
+- **`00-namespace.yaml`**: Dedicated `zylkerbank` namespace.
+- **`01-configmap-secrets.yaml`**: Centralized configuration, endpoints, and credentials.
+- **`02-db-init-configmaps.yaml`**: Pre-loaded Oracle 23c Free and PostgreSQL 16 DDL/seed scripts.
+- **`03-datastores.yaml`**: Stateful deployments for Oracle 23c Free (PVC 15Gi), PostgreSQL 16 (PVC 5Gi), and Apache Kafka KRaft (PVC 5Gi) with automatic topic creation.
+- **`04-services.yaml`**: Deployments & Services for all 5 polyglot services using `impazhani/zylkerbank-*` images, complete with Site24x7 APM init containers and Chaos SDK volume mounts.
+- **`05-ingress.yaml`**: NGINX Ingress rules directing traffic to `api-gateway:8000`.
+- **`06-go-apm-daemonset.yaml`**: Cluster-wide eBPF DaemonSet monitoring Go microservices.
 
 ### Developer Scripts
 

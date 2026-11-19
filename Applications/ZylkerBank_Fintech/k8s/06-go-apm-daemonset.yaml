@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zylkerbank-go-apm-sa
+  namespace: zylkerbank
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: zylkerbank-go-apm-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: zylkerbank-go-apm-binding
+subjects:
+  - kind: ServiceAccount
+    name: zylkerbank-go-apm-sa
+    namespace: zylkerbank
+roleRef:
+  kind: ClusterRole
+  name: zylkerbank-go-apm-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: site24x7-go-apm-agent
+  namespace: zylkerbank
+  labels:
+    app: site24x7-go-apm
+spec:
+  selector:
+    matchLabels:
+      app: site24x7-go-apm
+  template:
+    metadata:
+      labels:
+        app: site24x7-go-apm
+    spec:
+      serviceAccountName: zylkerbank-go-apm-sa
+      hostPID: true
+      containers:
+        - name: go-apm-agent
+          image: site24x7/apminsight-go-agent:latest
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          env:
+            - name: S247_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: S247_LICENSE_KEY
+                  optional: true
+            - name: GO_APPS
+              value: "ZylkerBank-Ledger=ledger-service:8081"

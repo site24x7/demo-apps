@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zylkerbank
+  labels:
+    app.kubernetes.io/name: zylkerbank
+    app.kubernetes.io/part-of: zylkerbank-fintech
