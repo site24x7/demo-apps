@@ -143,6 +143,7 @@ services:
   # ── 1. Account & Ledger Service (Go / Gin / Oracle) ──────────────────────
   #    APM: Site24x7 Go Agent (eBPF sidecar — see s247-go-apm-agent service below)
   ledger-service:
+    image: impazhani/zylkerbank-ledger-service:latest
     build:
       context: ./services/ledger-service
       dockerfile: Dockerfile
@@ -178,6 +179,7 @@ services:
   # ── 2. Financial Gateway (Node / Express / Kafka producer) ───────────────
   #    APM: Site24x7 Node.js Agent (apminsight runtime injection)
   financial-gateway:
+    image: impazhani/zylkerbank-financial-gateway:latest
     build:
       context: ./services/financial-gateway
       dockerfile: Dockerfile
@@ -230,6 +232,7 @@ services:
   # ── 3. AI & Risk Intelligence (Python / FastAPI / Kafka consumer) ────────
   #    APM: Site24x7 Python Agent (apminsight + S247DataExporter)
   ai-risk-service:
+    image: impazhani/zylkerbank-ai-risk-service:latest
     build:
       context: ./services/ai-risk-service
       dockerfile: Dockerfile
@@ -295,6 +298,7 @@ services:
   # ── 4. Banking Portal & BFF (Java / Spring Boot / Thymeleaf) ─────────────
   #    APM: Site24x7 Java Agent (-javaagent dynamic download & injection)
   banking-portal:
+    image: impazhani/zylkerbank-banking-portal:latest
     build:
       context: ./services/banking-portal
       dockerfile: Dockerfile
@@ -359,6 +363,7 @@ services:
   # ── 5. API Gateway (Python / FastAPI / Edge Router) ──────────────────────
   #    APM: Site24x7 Python Agent (apminsight + S247DataExporter)
   api-gateway:
+    image: impazhani/zylkerbank-api-gateway:latest
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile

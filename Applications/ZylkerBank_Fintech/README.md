@@ -224,12 +224,29 @@ Pre-seeded accounts are immediately available for login:
 From the `Applications/ZylkerBank_Fintech` directory:
 
 ```bash
-# Start all microservices, API Gateway, and datastores
+# Using the deployment helper script (recommended):
+./scripts/deploy-compose.sh up
+
+# Or directly with Docker Compose:
 docker compose up -d
 
-# Or rebuild images before starting
-docker compose up -d --build
+# Start with Site24x7 APM monitoring:
+S247_APM_ENABLED=true S247_LICENSE_KEY=<your_key> docker compose --profile apm up -d
 ```
+
+### Developer Scripts
+
+The `scripts/` directory provides workflow automation matching the ZylkerKart development experience:
+
+- **`./scripts/build-all.sh`**: Interactive CLI script to build multi-arch images (`linux/amd64,linux/arm64`), push manifests to Docker Hub (`impazhani/zylkerbank-<service>:latest`), or pull pre-built images.
+- **`./scripts/deploy-compose.sh {up|down|restart|logs|status|clean}`**: Manages container lifecycle, polls service health probes, and presents a status dashboard.
+
+### CI/CD Automation (GitHub Actions)
+
+The repository includes [`.github/workflows/zylkerbank-docker.yml`](../../.github/workflows/zylkerbank-docker.yml) for automated builds:
+- Triggers automatically on pushes to `main` modifying services or `chaos-libs/`.
+- Supports `workflow_dispatch` manual execution with a target service dropdown (`all` or individual services).
+- Builds multi-arch (`amd64`/`arm64`) with layer caching and pushes to Docker Hub (`impazhani/zylkerbank-<service>:latest`).
 
 ### Access Application
 You can now access the full platform directly through the **API Gateway** on port **8000**:
