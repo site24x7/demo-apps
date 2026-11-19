@@ -1,0 +1,28 @@
+{
+  "name": "zylkerbank-financial-gateway",
+  "version": "1.0.0",
+  "description": "ZylkerBank Financial Gateway - transfer orchestration, payment requests & virtual card engine",
+  "main": "src/app.js",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node src/app.js",
+    "test": "NODE_ENV=test node --test test/*.test.js",
+    "check": "for f in $(find src test -name '*.js'); do node --check $f || exit 1; done"
+  },
+  "dependencies": {
+    "site24x7-chaos-sdk": "file:../../../../chaos-libs/nodejs/site24x7-chaos-sdk-1.2.5.tgz",
+    "axios": "^1.6.5",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.11.3",
+    "zod": "^3.23.8"
+  }
+}

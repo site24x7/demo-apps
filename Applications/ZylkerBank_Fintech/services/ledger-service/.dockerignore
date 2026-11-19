@@ -1,0 +1,9 @@
+.git
+.gitignore
+*.md
+*.log
+*.exe
+*.test
+*.out
+vendor/
+.DS_Store

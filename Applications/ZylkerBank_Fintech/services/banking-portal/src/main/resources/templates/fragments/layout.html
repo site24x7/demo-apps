@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<!-- ───────────── <head> ───────────── -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - ZylkerBank'">ZylkerBank - Money Transfer and Online Payments</title>
+    <meta name="csrf-token" th:if="${csrfToken != null}" th:content="${csrfToken}">
+
+    <link rel="shortcut icon" th:href="@{/assets/images/fav.png}" type="image/x-icon">
+    <link rel="stylesheet" th:href="@{/assets/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/fontawesome.min.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/jquery-ui.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/plugin/apexcharts.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/plugin/nice-select.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/plugin/magnific-popup.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/plugin/slick.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/arafat-font.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/plugin/animate.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+</head>
+
+<body>
+
+<!-- ───────────── preloader + scroll-to-top ───────────── -->
+<th:block th:fragment="preloader">
+    <div class="preloader" id="preloader"></div>
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+</th:block>
+
+<!-- ───────────── brand logo (monolith logo image) ───────────── -->
+<a th:fragment="logo(href)" th:href="${href}">
+    <img th:src="@{/assets/images/logo.png}" alt="ZylkerBank">
+</a>
+
+<!-- ───────────── flash / alert messages (standard bootstrap) ───────────── -->
+<th:block th:fragment="flash">
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" th:if="${flashError != null}">
+        <strong th:text="${flashError}">Something went wrong</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert" th:if="${flashSuccess != null}">
+        <strong th:text="${flashSuccess}">Done</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div class="alert alert-info alert-dismissible fade show" role="alert" th:if="${flashInfo != null}">
+        <strong th:text="${flashInfo}">Note</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</th:block>
+
+<!-- ───────────── CSRF hidden field ───────────── -->
+<input th:fragment="csrf" type="hidden" name="_csrf" th:value="${csrfToken}">
+
+
+<!-- ───────────── public header (landing / login / register / 404) ───────────── -->
+<header th:fragment="publicHeader" class="header-section">
+    <div class="overlay">
+        <div class="container">
+            <div class="row d-flex header-area">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" th:href="@{/}">
+                        <img th:src="@{/assets/images/logo.png}" alt="ZylkerBank">
+                    </a>
+                    <button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-content">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="collapse navbar-collapse justify-content-end" id="navbar-content">
+                        <ul class="navbar-nav mr-auto mb-2 mb-lg-0">
+                            <li class="nav-item"><a class="nav-link" th:href="@{/}">Home</a></li>
+                            <li class="nav-item"><a class="nav-link" th:href="@{/#solutions}">Solutions</a></li>
+                            <li class="nav-item"><a class="nav-link" th:href="@{/#how-it-works}">How it works</a></li>
+                            <li class="nav-item"><a class="nav-link" th:href="@{/#faqs}">FAQs</a></li>
+                        </ul>
+                        <div class="right-area header-action d-flex align-items-center max-un">
+                            <th:block th:if="${user == null}">
+                                <a th:href="@{/login}" class="login">Login</a>
+                                <a th:href="@{/register}" class="cmn-btn">Sign Up</a>
+                            </th:block>
+                            <th:block th:if="${user != null}">
+                                <a th:href="@{/dashboard}" class="cmn-btn">My Dashboard</a>
+                            </th:block>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ───────────── footer (public pages) ───────────── -->
+<footer th:fragment="footer" class="footer-section">
+    <div class="container">
+        <div class="footer-area pt-120">
+            <div class="footer-top">
+                <div class="row align-items-center">
+                    <div class="col-sm-6 d-flex justify-content-center justify-content-sm-start">
+                        <div class="menu-item">
+                            <ul class="footer-link d-flex align-items-center">
+                                <li><a th:href="@{/#solutions}">Solutions</a></li>
+                                <li><a th:href="@{/#faqs}">FAQs</a></li>
+                                <li><a th:href="@{/login}">Login</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="social-link d-flex justify-content-sm-end justify-content-center align-items-center">
+                            <a href="javascript:void(0)"><img th:src="@{/assets/images/icon/facebook.png}" alt="icon"></a>
+                            <a href="javascript:void(0)"><img th:src="@{/assets/images/icon/linkedin.png}" alt="icon"></a>
+                            <a href="javascript:void(0)"><img th:src="@{/assets/images/icon/instagram.png}" alt="icon"></a>
+                            <a href="javascript:void(0)"><img th:src="@{/assets/images/icon/twitter.png}" alt="icon"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-md-6 col-sm-8 d-flex justify-content-center justify-content-sm-start order-sm-0 order-1">
+                        <div class="copyright text-center text-sm-start">
+                            <p>Copyright © 2026 <a th:href="@{/}">ZylkerBank.</a> All Rights Reserved.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-4">
+                        <div class="menu-item">
+                            <ul class="footer-link d-flex justify-content-sm-end justify-content-center align-items-center">
+                                <li><a href="javascript:void(0)">Terms</a></li>
+                                <li><a href="javascript:void(0)">Privacy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ───────────── application header + sidebar (authenticated pages) ───────────── -->
+<header th:fragment="appHeader(active)" class="header-section body-collapse">
+    <div class="overlay">
+        <div class="container-fruid">
+            <div class="row d-flex header-area">
+                <div class="navbar-area d-flex align-items-center justify-content-between">
+                    <div class="sidebar-icon">
+                        <img th:src="@{/assets/images/icon/menu.png}" alt="icon">
+                    </div>
+                    <form th:action="@{/transactions}" method="get" class="flex-fill">
+                        <div class="form-group d-flex align-items-center">
+                            <img th:src="@{/assets/images/icon/search.png}" alt="icon">
+                            <input type="text" name="q" placeholder="Type to search...">
+                        </div>
+                    </form>
+                    <div class="dashboard-nav">
+                        <div class="single-item language-area">
+                            <div class="language-btn">
+                                <img th:src="@{/assets/images/icon/lang.png}" alt="icon">
+                            </div>
+                            <ul class="main-area language-content">
+                                <li>English</li>
+                                <li>Hindi</li>
+                                <li class="active">English (US)</li>
+                                <li>Japanese</li>
+                                <li>Kannada</li>
+                                <li>Lithuanian</li>
+                            </ul>
+                        </div>
+                        <div class="single-item notifications-area">
+                            <div class="notifications-btn">
+                                <img th:src="@{/assets/images/icon/bell.png}" class="bell-icon" alt="icon">
+                            </div>
+                            <div class="main-area notifications-content">
+                                <div class="head-area d-flex justify-content-between">
+                                    <h5>Notifications</h5>
+                                    <span class="mdr">2</span>
+                                </div>
+                                <ul>
+                                    <li>
+                                        <a th:href="@{/receive/requests}" class="d-flex">
+                                            <div class="img-area"><img th:src="@{/assets/images/icon/receive.png}" class="max-un" alt="image"></div>
+                                            <div class="text-area">
+                                                <p class="mdr">Review <b>payment requests</b> sent to you</p>
+                                                <p class="mdr time-area">Pay or decline</p>
+                                            </div>
+                                        </a>
+                                        <i class="fa-solid fa-caret-right"></i>
+                                    </li>
+                                    <li>
+                                        <a th:href="@{/cards}" class="d-flex">
+                                            <div class="img-area"><img th:src="@{/assets/images/master-card.png}" class="max-un" alt="image"></div>
+                                            <div class="text-area">
+                                                <p class="mdr">Manage your <b>virtual cards</b></p>
+                                                <p class="mdr time-area">Fund, withdraw or freeze</p>
+                                            </div>
+                                        </a>
+                                        <i class="fa-solid fa-caret-right"></i>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="single-item user-area">
+                            <div class="profile-area d-flex align-items-center">
+                                <span class="user-profile"><img th:src="@{/assets/images/avatar.png}" alt="User"></span>
+                                <i class="fa-solid fa-sort-down"></i>
+                            </div>
+                            <div class="main-area user-content">
+                                <div class="head-area d-flex align-items-center">
+                                    <div class="profile-img"><img th:src="@{/assets/images/avatar-2.png}" alt="User"></div>
+                                    <div class="profile-head">
+                                        <a th:href="@{/account}"><h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5></a>
+                                        <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : ''}">2178392293767</span></small></p>
+                                    </div>
+                                </div>
+                                <ul>
+                                    <li class="border-area">
+                                        <a th:href="@{/dashboard}"><i class="fas fa-user"></i>Dashboard</a>
+                                    </li>
+                                    <li class="border-area">
+                                        <a th:href="@{/account}"><i class="fas fa-cog"></i>Settings</a>
+                                    </li>
+                                    <li>
+                                        <form th:action="@{/logout}" method="post" style="margin:0;padding:0;">
+                                            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                            <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                <i class="fas fa-sign-out" style="margin-right:10px;"></i>Logout
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-wrapper">
+                    <div class="close-btn"><i class="fa-solid fa-xmark"></i></div>
+                    <div class="sidebar-logo">
+                        <a th:href="@{/dashboard}"><img th:src="@{/assets/images/logo.png}" alt="ZylkerBank"></a>
+                    </div>
+                    <ul>
+                        <li th:classappend="${active == 'dashboard'} ? 'active'">
+                            <a th:href="@{/dashboard}"><img th:src="@{/assets/images/icon/dashboard.png}" alt="Dashboard"> <span>Dashboard</span></a>
+                        </li>
+                        <li th:classappend="${active == 'transactions'} ? 'active'">
+                            <a th:href="@{/transactions}"><img th:src="@{/assets/images/icon/transactions.png}" alt="Transactions"> <span>Transactions</span></a>
+                        </li>
+                        <li th:classappend="${active == 'pay'} ? 'active'">
+                            <a th:href="@{/transfer/step-1}"><img th:src="@{/assets/images/icon/pay.png}" alt="Pay"> <span>Pay</span></a>
+                        </li>
+                        <li th:classappend="${active == 'receive'} ? 'active'">
+                            <a th:href="@{/receive/step-1}"><img th:src="@{/assets/images/icon/receive.png}" alt="Receive"> <span>Receive</span></a>
+                        </li>
+                        <li th:classappend="${active == 'requests'} ? 'active'">
+                            <a th:href="@{/receive/requests}"><img th:src="@{/assets/images/icon/recipients.png}" alt="Requests"> <span>Requests</span></a>
+                        </li>
+                        <li th:classappend="${active == 'cards'} ? 'active'">
+                            <a th:href="@{/cards}"><img th:src="@{/assets/images/icon/deposit.png}" alt="Cards"> <span>Cards</span></a>
+                        </li>
+                    </ul>
+                    <ul class="bottom-item">
+                        <li th:classappend="${active == 'account'} ? 'active'">
+                            <a th:href="@{/account}"><img th:src="@{/assets/images/icon/account.png}" alt="Account"> <span>Account</span></a>
+                        </li>
+                        <li>
+                            <form th:action="@{/logout}" method="post" style="margin:0;padding:0;">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                    <img th:src="@{/assets/images/icon/quit.png}" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                    <div class="pt-120">
+                        <div class="invite-now">
+                            <div class="img-area"><img th:src="@{/assets/images/invite-now-illus.png}" alt="Image"></div>
+                            <p>Invite your friend and get $25</p>
+                            <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ───────────── scripts: put right before </body> ───────────── -->
+<th:block th:fragment="scripts">
+    <script th:src="@{/assets/js/jquery.min.js}"></script>
+    <script th:src="@{/assets/js/jquery-ui.js}"></script>
+    <script th:src="@{/assets/js/bootstrap.min.js}"></script>
+    <script th:src="@{/assets/js/fontawesome.js}"></script>
+    <script th:src="@{/assets/js/plugin/slick.js}"></script>
+    <script th:src="@{/assets/js/plugin/apexcharts.js}"></script>
+    <script th:src="@{/assets/js/plugin/jquery.nice-select.min.js}"></script>
+    <script th:src="@{/assets/js/plugin/counter.js}"></script>
+    <script th:src="@{/assets/js/plugin/waypoint.min.js}"></script>
+    <script th:src="@{/assets/js/plugin/jquery.magnific-popup.min.js}"></script>
+    <script th:src="@{/assets/js/plugin/wow.min.js}"></script>
+    <script th:src="@{/assets/js/plugin/plugin.js}"></script>
+    <script th:src="@{/assets/js/main.js}"></script>
+</th:block>
+
+</body>
+</html>

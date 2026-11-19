@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ZylkerBank - Account Settings & Profile</title>
+
+    <link rel="shortcut icon" href="/assets1/images/fav.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/assets1/css/fontawesome.min.css?v=6.5.1">
+    <link rel="stylesheet" href="/assets1/css/jquery-ui.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/apexcharts.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/nice-select.css">
+    <link rel="stylesheet" href="/assets1/css/arafat-font.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/animate.css">
+    <link rel="stylesheet" href="/assets1/css/style.css?v=2.2">
+</head>
+
+<body>
+    <!-- start preloader -->
+    <div class="preloader" id="preloader"></div>
+    <!-- end preloader -->
+
+    <!-- Scroll To Top Start-->
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+    <!-- Scroll To Top End -->
+
+    <!-- header-section start -->
+    <header class="header-section body-collapse">
+        <div class="overlay">
+            <div class="container-fruid">
+                <div class="row d-flex header-area">
+                    <div class="navbar-area d-flex align-items-center justify-content-between">
+                        <div class="sidebar-icon">
+                            <img src="/assets1/images/icon/menu.png" alt="icon">
+                        </div>
+                        <form action="/transactions" method="get" class="flex-fill"><div class="form-group d-flex align-items-center"><img src="/assets1/images/icon/search.png" alt="icon"><input type="text" name="q" placeholder="Type to search..."></div></form>
+                        <div class="dashboard-nav">
+                            <div class="single-item language-area">
+                                <div class="language-btn">
+                                    <img src="/assets1/images/icon/lang.png" alt="icon">
+                                </div>
+                                <ul class="main-area language-content">
+                                    <li>English</li>
+                                    <li>Hindi</li>
+                                    <li class="active">English (US)</li>
+                                    <li>Japanese</li>
+                                    <li>Kannada</li>
+                                    <li>Lithuanian</li>
+                                </ul>
+                            </div>
+                            <div class="single-item notifications-area">
+                                <div class="notifications-btn">
+                                    <img src="/assets1/images/icon/bell.png" class="bell-icon" alt="icon">
+                                </div>
+                                <div class="main-area notifications-content">
+                                    <div class="head-area d-flex justify-content-between">
+                                        <h5>Notifications</h5>
+                                        <span class="mdr">4</span>
+                                    </div>
+                                    <ul>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-1.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$134.00</b> from <b>Anna
+                                                            Green</b></p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-2.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr"><b>James Deed</b> requested a payment of
+                                                        <b>£890.00</b>
+                                                    </p>
+                                                    <p class="mdr time-area">08.09AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/master-card.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">Your new payment method has beed added successfully
+                                                    </p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-3.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$250.00</b> from Goerge Michael
+                                                    </p>
+                                                    <p class="mdr time-area">Yesterday</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="single-item user-area">
+                                <div class="profile-area d-flex align-items-center">
+                                    <span class="user-profile">
+                                        <img src="/assets1/images/avatar.png" alt="User">
+                                    </span>
+                                    <i class="fa-solid fa-caret-down"></i>
+                                </div>
+                                <div class="main-area user-content">
+                                    <div class="head-area d-flex align-items-center">
+                                        <div class="profile-img">
+                                            <img src="/assets1/images/avatar-2.png" alt="User">
+                                        </div>
+                                        <div class="profile-head">
+                                            <a href="/account">
+                                                <h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5>
+                                            </a>
+                                            <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span></small></p>
+                                        </div>
+                                    </div>
+                                    <ul>
+                                        <li class="border-area">
+                                            <a href="/dashboard"><i class="fa-solid fa-user"></i>Dashboard</a>
+                                        </li>
+                                        <li class="border-area">
+                                            <a href="/account"><i class="fa-solid fa-gear"></i>Settings</a>
+                                        </li>
+                                        <li>
+                                            <form action="/logout" method="post" style="margin:0;padding:0;">
+                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:12px;"></i>Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-wrapper">
+                        <div class="close-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="sidebar-logo">
+                            <a href="dashboard.html"><img src="/assets1/images/logo.png" alt="logo"></a>
+                        </div>
+                        <ul>
+                            <li>
+                                <a href="/dashboard">
+                                    <img src="/assets1/images/icon/dashboard.png" alt="Dashboard"> <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transactions">
+                                    <img src="/assets1/images/icon/transactions.png" alt="Transactions"> <span>Transactions</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transfer/step-1">
+                                    <img src="/assets1/images/icon/pay.png" alt="Pay"> <span>Pay</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/step-1">
+                                    <img src="/assets1/images/icon/receive.png" alt="Receive"> <span>Receive</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/requests">
+                                    <img src="/assets1/images/icon/recipients.png" alt="Requests"> <span>Requests</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/cards">
+                                    <img src="/assets1/images/icon/deposit.png" alt="Cards"> <span>Cards</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="bottom-item">
+                            <li class="active">
+                                <a href="/account">
+                                    <img src="/assets1/images/icon/account.png" alt="Account"> <span>Account</span>
+                                </a>
+                            </li>
+                            <li>
+                                <form action="/logout" method="post" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                    <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                        <img src="/assets1/images/icon/quit.png" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                        <div class="pt-120">
+                            <div class="invite-now">
+                                <div class="img-area">
+                                    <img src="/assets1/images/invite-now-illus.png" alt="Image">
+                                </div>
+                                <p>Invite your friend and get $25</p>
+                                <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-section end -->
+
+    <!-- Dashboard Section start -->
+    <section class="dashboard-section body-collapse account">
+        <div class="overlay pt-120">
+            <div class="container-fruid">
+                <div class="main-content">
+                    <div class="row">
+                        <div class="col-xxl-3 col-xl-4 col-md-6">
+                            <div class="owner-details">
+                                <div class="profile-area">
+                                    <div class="profile-img">
+                                        <img src="/assets1/images/owner-profile.png" alt="image">
+                                    </div>
+                                    <div class="name-area">
+                                        <h6 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h6>
+                                        <p class="active-status" th:text="${user != null ? user.kycStatus : 'VERIFIED'}">Active</p>
+                                    </div>
+                                </div>
+                                <div class="owner-info">
+                                    <ul>
+                                        <li>
+                                            <p>Account ID:</p>
+                                            <span class="mdr" th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span>
+                                        </li>
+                                        <li>
+                                            <p>Tier Level:</p>
+                                            <span class="mdr" th:text="'Tier ' + (${user != null && user.tierLevel != null ? user.tierLevel : 1})">Tier 1</span>
+                                        </li>
+                                        <li>
+                                            <p>Confirm status:</p>
+                                            <span class="mdr">100% (Verified)</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="owner-action">
+                                    <form action="/logout" method="post" style="margin:0;padding:0;">
+                                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                        <button type="submit" style="background:none;border:none;padding:0;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;">
+                                            <img src="/assets1/images/icon/logout.png" alt="image" style="margin-right:8px;">
+                                            Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xxl-9 col-xl-8">
+                            <div class="tab-main">
+                                <ul class="nav nav-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="true">Account</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">Security</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab" aria-controls="payment" aria-selected="false">Payment Methods</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="notification-tab" data-bs-toggle="tab" data-bs-target="#notification" type="button" role="tab" aria-controls="notification" aria-selected="false">Notification</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content mt-40">
+                                    <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
+                                        <div class="upload-avatar">
+                                            <div class="avatar-left d-flex align-items-center">
+                                                <div class="profile-img">
+                                                    <img src="/assets1/images/owner-profile-2.png" alt="image">
+                                                </div>
+                                                <div class="instraction">
+                                                    <h6>Your Avatar</h6>
+                                                    <p>Profile picture size: 400px x 400px</p>
+                                                </div>
+                                            </div>
+                                            <div class="avatar-right">
+                                                <div class="file-upload">
+                                                    <div class="right-area">
+                                                        <label class="file">
+                                                            <input type="file">
+                                                            <span class="file-custom"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <form action="#">
+                                            <div class="row justify-content-center">
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="fName">First Name</label>
+                                                        <input type="text" id="fName" th:value="${user != null ? user.firstName : ''}" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="lName">Last Name</label>
+                                                        <input type="text" id="lName" th:value="${user != null ? user.fullName : ''}" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="email">Email</label>
+                                                        <div class="row input-status d-flex align-items-center">
+                                                            <div class="col-6">
+                                                                <input type="text" id="email" th:value="${user != null ? user.email : ''}" readonly>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <span class="pending">
+                                                                    <img src="/assets1/images/icon/pending.png" alt="icon">
+                                                                    E-mail confirmation in pending
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="phone">Phone</label>
+                                                        <div class="row input-status d-flex align-items-center">
+                                                            <div class="col-6">
+                                                                <input type="text" id="phone" placeholder="(316) 555-0116">
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <span class="confirm">
+                                                                    <img src="/assets1/images/icon/confirm.png" alt="icon">
+                                                                    Phone number confirm
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input file">
+                                                        <label>ID Confirmation documents</label>
+                                                        <div class="row input-status d-flex align-items-center">
+                                                            <div class="col-6">
+                                                                <div class="file-upload">
+                                                                    <div class="right-area">
+                                                                        <label class="file">
+                                                                            <input type="file">
+                                                                            <span class="file-custom"></span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <span class="notconfirm">
+                                                                    <img src="/assets1/images/icon/not-confirm.png" alt="icon">
+                                                                    Person not confirmed
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="address">Address</label>
+                                                        <input type="text" id="address" th:value="${user != null ? user.accountNumber : ''}" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="btn-border">
+                                                        <button class="cmn-btn">Account</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                                        <div class="single-content authentication d-flex align-items-center justify-content-between">
+                                            <div class="left">
+                                                <h5>Two Factor Authentication</h5>
+                                                <p>Two-Factor Authentication (2FA) can be used to help protect your account</p>
+                                            </div>
+                                            <div class="right">
+                                                <button>Enable</button>
+                                            </div>
+                                        </div>
+                                        <div class="change-pass mb-40">
+                                            <div class="row">
+                                                <div class="col-sm-6">
+                                                    <h5>Change Password</h5>
+                                                    <p>You can always change your password for security reasons or reset your password in case you forgot it.</p>
+                                                    <a href="javascript:void(0)">Forgot password?</a>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <form action="#">
+                                                        <div class="row justify-content-center">
+                                                            <div class="col-md-12">
+                                                                <div class="single-input">
+                                                                    <label for="current-password">Current password</label>
+                                                                    <input type="text" id="current-password" placeholder="Current password">
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <div class="single-input">
+                                                                    <label for="new-password">New password</label>
+                                                                    <input type="text" id="new-password" placeholder="New password">
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <div class="single-input">
+                                                                    <label for="confirm-password">Confirm New password</label>
+                                                                    <input type="text" id="confirm-password" placeholder="Confirm New password">
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <div class="btn-border w-100">
+                                                                    <button class="cmn-btn w-100">Update password</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="single-content additional-security">
+                                            <h5>Additional security</h5>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <h6>SMS recovery</h6>
+                                                    <p>Number ending with 1234</p>
+                                                </div>
+                                                <div class="right">
+                                                    <button class="active">Disable SMS</button>
+                                                </div>
+                                            </div>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <h6>Autheticator App</h6>
+                                                    <p>Google Authenticator</p>
+                                                </div>
+                                                <div class="right">
+                                                    <button>Configure</button>
+                                                </div>
+                                            </div>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <h6>SSL Certificate</h6>
+                                                    <p>Secure Sockets Layer</p>
+                                                </div>
+                                                <div class="right">
+                                                    <button>Configure</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="single-content your-devices">
+                                            <div class="head-item d-flex align-items-center justify-content-between">
+                                                <h5>Your devices</h5>
+                                                <a href="javascript:void(0)">Log out on all devices</a>
+                                            </div>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <div class="icon-area">
+                                                        <img src="/assets1/images/icon/iphone.png" alt="icon">
+                                                    </div>
+                                                    <div class="text-area">
+                                                        <h6>Iphone 13 Pro Max</h6>
+                                                        <p>New York City · June 20 at 14:00</p>
+                                                    </div>
+                                                </div>
+                                                <div class="right">
+                                                    <button>Log out</button>
+                                                </div>
+                                            </div>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <div class="icon-area">
+                                                        <img src="/assets1/images/icon/ipad.png" alt="icon">
+                                                    </div>
+                                                    <div class="text-area">
+                                                        <h6>iPad Pro</h6>
+                                                        <p>New York City · June 20 at 14:00</p>
+                                                    </div>
+                                                </div>
+                                                <div class="right">
+                                                    <button>Log out</button>
+                                                </div>
+                                            </div>
+                                            <div class="single-setting">
+                                                <div class="left">
+                                                    <div class="icon-area">
+                                                        <img src="/assets1/images/icon/imac.png" alt="icon">
+                                                    </div>
+                                                    <div class="text-area">
+                                                        <h6>iMac OSX</h6>
+                                                        <p>New York City · June 20 at 14:00</p>
+                                                    </div>
+                                                </div>
+                                                <div class="right">
+                                                    <button>Log out</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane pb-120 fade" id="payment" role="tabpanel" aria-labelledby="payment-tab">
+                                        <div class="card-area">
+                                            <h6>Linked Payment system</h6>
+                                            <div class="card-content d-flex flex-wrap">
+                                                <div class="single-card">
+                                                    <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#transactionsMod">
+                                                        <img src="/assets1/images/visa-card.png" alt="image" class="w-100">
+                                                    </button>
+                                                </div>
+                                                <div class="single-card">
+                                                    <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#transactionsMod">
+                                                        <img src="/assets1/images/zylkerbank-card.png" alt="image" class="w-100">
+                                                    </button>
+                                                </div>
+                                                <div class="single-card">
+                                                    <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#transactionsMod">
+                                                        <img src="/assets1/images/paypal-card.png" alt="image" class="w-100">
+                                                    </button>
+                                                </div>
+                                                <div class="single-card">
+                                                    <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#transactionsMod">
+                                                        <img src="/assets1/images/blockchain-card.png" alt="image" class="w-100">
+                                                    </button>
+                                                </div>
+                                                <div class="single-card">
+                                                    <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#addcardMod">
+                                                        <img src="/assets1/images/add-new.png" alt="image" class="w-100">
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="notification" role="tabpanel" aria-labelledby="notification-tab">
+
+                                        <div class="notification-single">
+                                            <h6>Announcements</h6>
+                                            <label class="switch">
+                                                <input type="checkbox" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        <div class="notification-single">
+                                            <h6>Send payment</h6>
+                                            <label class="switch">
+                                                <input type="checkbox" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        <div class="notification-single">
+                                            <h6>Receive a payment</h6>
+                                            <label class="switch">
+                                                <input type="checkbox" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        <div class="notification-single">
+                                            <h6>Request payment</h6>
+                                            <label class="switch">
+                                                <input type="checkbox" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        <div class="notification-single">
+                                            <h6>Have a problem with a payment</h6>
+                                            <label class="switch">
+                                                <input type="checkbox">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                        <div class="notification-single">
+                                            <h6>Special Offers</h6>
+                                            <label class="switch">
+                                                <input type="checkbox" checked>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Dashboard Section end -->
+
+    <!-- Add Card Popup start -->
+    <div class="add-card">
+        <div class="container-fruid">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="modal fade" id="addcardMod" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header justify-content-between">
+                                    <h6>Add Card</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <form action="#">
+                                    <div class="row justify-content-center">
+                                        <div class="col-md-12">
+                                            <div class="single-input">
+                                                <label for="cardNumber">Card Number</label>
+                                                <input type="text" id="cardNumber" placeholder="5890 - 6858 - 6332 - 9843">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="single-input">
+                                                <label for="cardHolder">Card Holder</label>
+                                                <input type="text" id="cardHolder" placeholder="Alfred Davis">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="single-input">
+                                                <label for="month">Month</label>
+                                                <input type="text" id="month" placeholder="12">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="single-input">
+                                                <label for="year">Year</label>
+                                                <input type="text" id="year" placeholder="2025">
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="btn-border w-100">
+                                                <button class="cmn-btn w-100">Add Card</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Card Popup start -->
+
+    <!-- My Card Popup start -->
+    <div class="transactions-popup mycard">
+        <div class="container-fruid">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="modal fade" id="transactionsMod" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header justify-content-between">
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <div class="main-content">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <h5>My Cards</h5>
+                                            <div class="icon-area">
+                                                <img src="/assets1/images/popup-card.png" alt="image" class="w-100">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <div class="right-area">
+                                                <div class="top-area d-flex align-items-center justify-content-between">
+                                                    <div class="card-details d-flex align-items-center">
+                                                        <img src="/assets1/images/icon/mastercard.png" alt="image">
+                                                        <span>5880 **** **** 8854</span>
+                                                    </div>
+                                                    <a href="javascript:void(0)">
+                                                        <i class="icon-h-edit"></i>
+                                                        Edit
+                                                    </a>
+                                                </div>
+                                                <ul class="payment-details">
+                                                    <li>
+                                                        <span>Card Type:</span>
+                                                        <span>Visa</span>
+                                                    </li>
+                                                    <li>
+                                                        <span>Card Holder:</span>
+                                                        <span>Alfred Davis</span>
+                                                    </li>
+                                                    <li>
+                                                        <span>Expires:</span>
+                                                        <span>12/19</span>
+                                                    </li>
+                                                    <li>
+                                                        <span>Card Number:</span>
+                                                        <span>5880 5087 3288 8854</span>
+                                                    </li>
+                                                    <li>
+                                                        <span>Total Balance:</span>
+                                                        <span>80,700.00</span>
+                                                    </li>
+                                                    <li>
+                                                        <span>Total Debt:</span>
+                                                        <span>8,250.00</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- My Card Popup start -->
+
+    <!--==================================================================-->
+    <script src="/assets1/js/jquery.min.js"></script>
+    <script src="/assets1/js/bootstrap.min.js"></script>
+    <script src="/assets1/js/fontawesome.js?v=6.5.1"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="/assets1/js/jquery-ui.js"></script>
+    <script src="/assets1/js/plugin/apexcharts.js"></script>
+    <script src="/assets1/js/plugin/jquery.nice-select.min.js"></script>
+    <script src="/assets1/js/plugin/waypoint.min.js"></script>
+    <script src="/assets1/js/plugin/wow.min.js"></script>
+    <script src="/assets1/js/plugin/plugin.js"></script>
+    <script src="/assets1/js/main.js"></script>
+</body>
+
+</html>

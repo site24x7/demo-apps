@@ -1,0 +1,141 @@
+# =============================================================================
+# ZylkerBank — Docker Image Build & Push
+# =============================================================================
+# Builds multi-arch Docker images for all 5 ZylkerBank microservices
+# and pushes them to Docker Hub.
+#
+# Trigger: Push to main when files under ZylkerBank services change,
+#          or manual dispatch.
+#
+# Architecture:
+#   All 5 services: linux/amd64 + linux/arm64 (multi-arch)
+#   - api-gateway       (Python 3.11 / FastAPI)
+#   - banking-portal    (Java 17 / Spring Boot 3.2)
+#   - ledger-service    (Go 1.26 / Gin)
+#   - financial-gateway (Node.js 18 / Express)
+#   - ai-risk-service   (Python 3.11 / FastAPI)
+#
+# Chaos SDK: every image takes the Site24x7 Chaos SDK from the repo-root
+#   chaos-libs/ folder via the "chaos-libs" named build context.
+#
+# Required secrets:
+#   - DOCKERHUB_USERNAME  — Docker Hub username
+#   - DOCKERHUB_TOKEN     — Docker Hub access token
+# =============================================================================
+
+name: "ZylkerBank: Docker Build & Push"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Applications/ZylkerBank_Fintech/services/**"
+      - "chaos-libs/**"
+      - ".github/workflows/zylkerbank-docker.yml"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build (all = build everything)"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - api-gateway
+          - banking-portal
+          - ledger-service
+          - financial-gateway
+          - ai-risk-service
+
+concurrency:
+  group: zylkerbank-docker
+  cancel-in-progress: false
+
+env:
+  SERVICES_ROOT: Applications/ZylkerBank_Fintech/services
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build Matrix — Multi-arch services
+  # ---------------------------------------------------------------------------
+  build-multiarch:
+    name: "${{ matrix.service }} (multi-arch)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api-gateway
+            platforms: linux/amd64,linux/arm64
+            tags: |
+              impazhani/zylkerbank-api-gateway:latest
+          - service: banking-portal
+            platforms: linux/amd64,linux/arm64
+            tags: |
+              impazhani/zylkerbank-banking-portal:latest
+              impazhani/zylkerbank-portal:latest
+          - service: ledger-service
+            platforms: linux/amd64,linux/arm64
+            tags: |
+              impazhani/zylkerbank-ledger-service:latest
+              impazhani/zylkerbank-ledger:latest
+          - service: financial-gateway
+            platforms: linux/amd64,linux/arm64
+            tags: |
+              impazhani/zylkerbank-financial-gateway:latest
+              impazhani/zylkerbank-gateway:latest
+          - service: ai-risk-service
+            platforms: linux/amd64,linux/arm64
+            tags: |
+              impazhani/zylkerbank-ai-risk-service:latest
+              impazhani/zylkerbank-ai-risk:latest
+
+    steps:
+      - name: Check if service should build
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || \
+             [[ "${{ inputs.service }}" == "all" ]] || \
+             [[ "${{ inputs.service }}" == "${{ matrix.service }}" ]]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        if: steps.check.outputs.skip == 'false'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.SERVICES_ROOT }}/${{ matrix.service }}
+          file: ${{ env.SERVICES_ROOT }}/${{ matrix.service }}/Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: ${{ matrix.tags }}
+          build-contexts: |
+            chaos-libs=./chaos-libs
+          cache-from: type=gha,scope=zylkerbank-${{ matrix.service }}
+          cache-to: type=gha,scope=zylkerbank-${{ matrix.service }},mode=max

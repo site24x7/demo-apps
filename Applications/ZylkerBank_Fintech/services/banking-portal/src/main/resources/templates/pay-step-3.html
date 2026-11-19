@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ZylkerBank - Money Transfer and Online Payments Dashboard HTML Template</title>
+
+    <link rel="shortcut icon" href="/assets1/images/fav.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/assets1/css/fontawesome.min.css?v=6.5.1">
+    <link rel="stylesheet" href="/assets1/css/jquery-ui.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/apexcharts.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/nice-select.css">
+    <link rel="stylesheet" href="/assets1/css/arafat-font.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/animate.css">
+    <link rel="stylesheet" href="/assets1/css/style.css?v=2.2">
+</head>
+
+<body>
+    <!-- start preloader -->
+    <div class="preloader" id="preloader"></div>
+    <!-- end preloader -->
+
+    <!-- Scroll To Top Start-->
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+    <!-- Scroll To Top End -->
+
+    <!-- header-section start -->
+    <header class="header-section body-collapse">
+        <div class="overlay">
+            <div class="container-fruid">
+                <div class="row d-flex header-area">
+                    <div class="navbar-area d-flex align-items-center justify-content-between">
+                        <div class="sidebar-icon">
+                            <img src="/assets1/images/icon/menu.png" alt="icon">
+                        </div>
+                        <form action="/transactions" method="get" class="flex-fill"><div class="form-group d-flex align-items-center"><img src="/assets1/images/icon/search.png" alt="icon"><input type="text" name="q" placeholder="Type to search..."></div></form>
+                        <div class="dashboard-nav">
+                            <div class="single-item language-area">
+                                <div class="language-btn">
+                                    <img src="/assets1/images/icon/lang.png" alt="icon">
+                                </div>
+                                <ul class="main-area language-content">
+                                    <li>English</li>
+                                    <li>Hindi</li>
+                                    <li class="active">English (US)</li>
+                                    <li>Japanese</li>
+                                    <li>Kannada</li>
+                                    <li>Lithuanian</li>
+                                </ul>
+                            </div>
+                            <div class="single-item notifications-area">
+                                <div class="notifications-btn">
+                                    <img src="/assets1/images/icon/bell.png" class="bell-icon" alt="icon">
+                                </div>
+                                <div class="main-area notifications-content">
+                                    <div class="head-area d-flex justify-content-between">
+                                        <h5>Notifications</h5>
+                                        <span class="mdr">4</span>
+                                    </div>
+                                    <ul>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-1.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$134.00</b> from <b>Anna
+                                                            Green</b></p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-2.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr"><b>James Deed</b> requested a payment of
+                                                        <b>£890.00</b>
+                                                    </p>
+                                                    <p class="mdr time-area">08.09AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/master-card.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">Your new payment method has beed added successfully
+                                                    </p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-3.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$250.00</b> from Goerge Michael
+                                                    </p>
+                                                    <p class="mdr time-area">Yesterday</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="single-item user-area">
+                                <div class="profile-area d-flex align-items-center">
+                                    <span class="user-profile">
+                                        <img src="/assets1/images/avatar.png" alt="User">
+                                    </span>
+                                    <i class="fa-solid fa-caret-down"></i>
+                                </div>
+                                <div class="main-area user-content">
+                                    <div class="head-area d-flex align-items-center">
+                                        <div class="profile-img">
+                                            <img src="/assets1/images/avatar-2.png" alt="User">
+                                        </div>
+                                        <div class="profile-head">
+                                            <a href="/account">
+                                                <h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5>
+                                            </a>
+                                            <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span></small></p>
+                                        </div>
+                                    </div>
+                                    <ul>
+                                        <li class="border-area">
+                                            <a href="/dashboard"><i class="fa-solid fa-user"></i>Dashboard</a>
+                                        </li>
+                                        <li class="border-area">
+                                            <a href="/account"><i class="fa-solid fa-gear"></i>Settings</a>
+                                        </li>
+                                        <li>
+                                            <form action="/logout" method="post" style="margin:0;padding:0;">
+                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:12px;"></i>Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-wrapper">
+                        <div class="close-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="sidebar-logo">
+                            <a href="/dashboard"><img src="/assets1/images/logo.png" alt="logo"></a>
+                        </div>
+                        <ul>
+                            <li>
+                                <a href="/dashboard">
+                                    <img src="/assets1/images/icon/dashboard.png" alt="Dashboard"> <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transactions">
+                                    <img src="/assets1/images/icon/transactions.png" alt="Transactions"> <span>Transactions</span>
+                                </a>
+                            </li>
+                            <li class="active">
+                                <a href="/transfer/step-1">
+                                    <img src="/assets1/images/icon/pay.png" alt="Pay"> <span>Pay</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/step-1">
+                                    <img src="/assets1/images/icon/receive.png" alt="Receive"> <span>Receive</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/requests">
+                                    <img src="/assets1/images/icon/recipients.png" alt="Requests"> <span>Requests</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/cards">
+                                    <img src="/assets1/images/icon/deposit.png" alt="Cards"> <span>Cards</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="bottom-item">
+                            <li>
+                                <a href="/account">
+                                    <img src="/assets1/images/icon/account.png" alt="Account"> <span>Account</span>
+                                </a>
+                            </li>
+                            <li>
+                                <form action="/logout" method="post" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                    <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                        <img src="/assets1/images/icon/quit.png" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                        <div class="pt-120">
+                            <div class="invite-now">
+                                <div class="img-area">
+                                    <img src="/assets1/images/invite-now-illus.png" alt="Image">
+                                </div>
+                                <p>Invite your friend and get $25</p>
+                                <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-section end -->
+
+    <!-- Dashboard Section start -->
+    <section class="dashboard-section body-collapse pay step step-2 step-3">
+        <div class="overlay pt-120">
+            <div class="container-fruid">
+                <div class="main-content">
+                    <div th:if="${flashError != null}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                        <strong th:text="${flashError}">Error</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="head-area d-flex align-items-center justify-content-between">
+                        <h4>Make a Payment</h4>
+                        <div class="icon-area">
+                            <img src="/assets1/images/icon/support-icon.png" alt="icon">
+                        </div>
+                    </div>
+                    <div class="choose-recipient">
+                        <div class="step-area">
+                            <span class="mdr">Step 3 of 3</span>
+                            <h5>Confirm Your Transfer</h5>
+                        </div>
+                        <div class="user-select">
+                            <div class="single-user">
+                                <div class="left d-flex align-items-center">
+                                    <div class="img-area">
+                                        <img src="/assets1/images/profile-1.png" alt="image">
+                                    </div>
+                                    <div class="text-area">
+                                        <p th:text="${wizard != null ? wizard.recipientName : 'Recipient'}">Sam Franks</p>
+                                        <span class="mdr">Account: <span th:text="${wizard != null ? wizard.recipientAccount : ''}">2171039012431</span></span>
+                                    </div>
+                                </div>
+                                <div class="right">
+                                    <a href="javascript:void(0)">
+                                        <i class="icon-g-tick"></i>
+                                        Choose
+                                    </a>
+                                    <a href="javascript:void(0)">
+                                        <i class="icon-h-edit"></i>
+                                        Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="payment-details">
+                        <div class="top-area">
+                            <h6>Payment Details</h6>
+                            <div class="right">
+                                <a href="javascript:void(0)">
+                                    <i class="icon-h-edit"></i>
+                                    Edit
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xl-6">
+                                <ul class="details-list">
+                                    <li>
+                                        <span>Recipient Name</span>
+                                        <b th:text="${wizard != null ? wizard.recipientName : ''}">Sam Franks</b>
+                                    </li>
+                                    <li>
+                                        <span>Recipient Account</span>
+                                        <b th:text="${wizard != null ? wizard.recipientAccount : ''}">2171039012431</b>
+                                    </li>
+                                    <li>
+                                        <span>Transfer Amount</span>
+                                        <b>$<span th:text="${wizard != null ? wizard.amount : '0.00'}">50.00</span> USD</b>
+                                    </li>
+                                    <li>
+                                        <span>Fee</span>
+                                        <b>Free</b>
+                                    </li>
+                                    <li>
+                                        <span>Description</span>
+                                        <b th:text="${wizard != null ? wizard.description : 'Payment'}">Lunch split</b>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <form method="post" action="/transfer/step-3" class="mt-4">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="single-input mb-3">
+                                    <label for="pin" class="fw-bold mb-2">Enter 4-Digit Security PIN</label>
+                                    <input type="password" name="pin" id="pin" class="form-control" maxlength="4" placeholder="••••" required style="font-size:24px; letter-spacing:8px; text-align:center;">
+                                    <div class="small text-muted mt-1">Default demo PIN is <b>1234</b>.</div>
+                                </div>
+                                <div class="footer-area mt-40">
+                                    <a href="/transfer/step-2">Previous Step</a>
+                                    <button type="submit" class="cmn-btn active border-0">Confirm &amp; Send Payment</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Dashboard Section end -->
+
+    <!-- Transfer Popup start -->
+    <div class="transfer-popup">
+        <div class="container-fruid">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="modal fade" id="transferMod" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <ul class="nav nav-tabs d-none" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="transfer-tab" data-bs-toggle="tab" data-bs-target="#transfer" type="button" role="tab" aria-controls="transfer" aria-selected="true">transfer</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="success-tab" data-bs-toggle="tab" data-bs-target="#success" type="button" role="tab" aria-controls="success" aria-selected="false">Confirm</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="transfer" role="tabpanel" aria-labelledby="transfer-tab">
+                                    <div class="modal-content">
+                                        <div class="modal-header mb-60 justify-content-between">
+                                            <a href="javascript:void(0)">
+                                                <i class="icon-a-left-arrow"></i>
+                                                Back
+                                            </a>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                                        </div>
+                                        <div class="main-content">
+                    <div th:if="${flashError != null}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                        <strong th:text="${flashError}">Error</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                                            <h4>Confirm Transfer!</h4>
+                                            <p>We have sent a verification code on your phone + Number +44831***932. Please enter verification code below</p>
+                                            <form action="javascript:void(0)">
+                                                <div class="userInput">
+                                                    <input type="text">
+                                                    <input type="text">
+                                                    <input type="text">
+                                                    <input type="text">
+                                                </div>
+                                                <a href="javascript:void(0)">Don’t receive a code?</a>
+                                                <button class="mt-60 confirm">Confirm</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="success" role="tabpanel" aria-labelledby="success-tab">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="btn-close d-md-none d-block" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                                        </div>
+                                        <div class="main-content text-center pt-120 pb-120">
+                                            <img src="/assets1/images/icon/success.png" alt="icon">
+                                            <h3>Success</h3>
+                                            <p>Transfer was completed.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Transfer Popup start -->
+
+    <!--==================================================================-->
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+    <script src="/assets1/js/jquery.min.js"></script>
+    <script src="/assets1/js/bootstrap.min.js"></script>
+    <script src="/assets1/js/fontawesome.js?v=6.5.1"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="/assets1/js/jquery-ui.js"></script>
+    <script src="/assets1/js/plugin/apexcharts.js"></script>
+    <script src="/assets1/js/plugin/jquery.nice-select.min.js"></script>
+    <script src="/assets1/js/plugin/waypoint.min.js"></script>
+    <script src="/assets1/js/plugin/wow.min.js"></script>
+    <script src="/assets1/js/plugin/plugin.js"></script>
+    <script src="/assets1/js/main.js"></script>
+</body>
+
+</html>

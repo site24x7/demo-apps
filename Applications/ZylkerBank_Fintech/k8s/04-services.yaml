@@ -1,0 +1,514 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ZylkerBank — Polyglot Microservices Deployments & Services
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── 1. API Gateway (Python 3.11 / FastAPI / Edge Ingress) ────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: zylkerbank
+  labels:
+    app: api-gateway
+    tier: edge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        tier: edge
+    spec:
+      volumes:
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      containers:
+        - name: api-gateway
+          image: impazhani/zylkerbank-api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: zylkerbank-config
+          env:
+            - name: PORT
+              value: "8000"
+            - name: CHAOS_SDK_APP_NAME
+              value: "api-gateway"
+            - name: S247_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: S247_LICENSE_KEY
+                  optional: true
+          volumeMounts:
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: zylkerbank
+  labels:
+    app: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  selector:
+    app: api-gateway
+---
+
+# ── 2. Banking Portal & BFF (Java 17 / Spring Boot 3.2 / Thymeleaf) ─────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-portal
+  namespace: zylkerbank
+  labels:
+    app: banking-portal
+    tier: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: banking-portal
+  template:
+    metadata:
+      labels:
+        app: banking-portal
+        tier: web
+    spec:
+      volumes:
+        - name: s247agent
+          emptyDir: {}
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      initContainers:
+        - name: s247-java-agent
+          image: site24x7/apminsight-javaagent:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              if [ "$S247_APM_ENABLED" = "true" ]; then
+                echo "Copying Site24x7 Java agent..."
+                cp -r /opt/site24x7/. /home/apm && chmod -R 777 /home/apm
+              else
+                mkdir -p /home/apm
+              fi
+          env:
+            - name: S247_APM_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: zylkerbank-config
+                  key: S247_APM_ENABLED
+          volumeMounts:
+            - name: s247agent
+              mountPath: /home/apm
+      containers:
+        - name: banking-portal
+          image: impazhani/zylkerbank-banking-portal:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: zylkerbank-config
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: POSTGRES_PASSWORD
+            - name: S247_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: S247_LICENSE_KEY
+                  optional: true
+            - name: CHAOS_SDK_APP_NAME
+              value: "banking-portal"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-javaagent:/home/apm/apminsight-javaagent.jar -Dapminsight.application.name=ZylkerBank-Portal"
+          volumeMounts:
+            - name: s247agent
+              mountPath: /home/apm
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 35
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: banking-portal
+  namespace: zylkerbank
+  labels:
+    app: banking-portal
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: banking-portal
+---
+
+# ── 3. Account & Ledger Service (Go 1.26 / Gin / Oracle 23c) ────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-service
+  namespace: zylkerbank
+  labels:
+    app: ledger-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ledger-service
+  template:
+    metadata:
+      labels:
+        app: ledger-service
+        tier: backend
+    spec:
+      volumes:
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      containers:
+        - name: ledger-service
+          image: impazhani/zylkerbank-ledger-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+              name: http
+          envFrom:
+            - configMapRef:
+                name: zylkerbank-config
+          env:
+            - name: PORT
+              value: "8081"
+            - name: ORACLE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: ORACLE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: JWT_SECRET
+            - name: INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: INTERNAL_TOKEN
+            - name: CHAOS_SDK_APP_NAME
+              value: "ledger-service"
+            - name: OTEL_SDK_DISABLED
+              value: "true"
+          volumeMounts:
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-service
+  namespace: zylkerbank
+  labels:
+    app: ledger-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+  selector:
+    app: ledger-service
+---
+
+# ── 4. Financial Gateway (Node.js 18 / Express / Postgres + Kafka) ───────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financial-gateway
+  namespace: zylkerbank
+  labels:
+    app: financial-gateway
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: financial-gateway
+  template:
+    metadata:
+      labels:
+        app: financial-gateway
+        tier: backend
+    spec:
+      volumes:
+        - name: s247agent
+          emptyDir: {}
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      initContainers:
+        - name: s247-nodejs-agent
+          image: site24x7/apminsight-nodejsagent:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              if [ "$S247_APM_ENABLED" = "true" ]; then
+                echo "Copying Site24x7 Node.js agent..."
+                cp -r /opt/site24x7/. /apm && chmod -R 755 /apm
+              else
+                mkdir -p /apm
+              fi
+          env:
+            - name: S247_APM_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: zylkerbank-config
+                  key: S247_APM_ENABLED
+          volumeMounts:
+            - name: s247agent
+              mountPath: /apm
+      containers:
+        - name: financial-gateway
+          image: impazhani/zylkerbank-financial-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+              name: http
+          envFrom:
+            - configMapRef:
+                name: zylkerbank-config
+          env:
+            - name: PORT
+              value: "8082"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: JWT_SECRET
+            - name: INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: INTERNAL_TOKEN
+            - name: CARD_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: CARD_ENCRYPTION_KEY
+            - name: APMINSIGHT_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: S247_LICENSE_KEY
+                  optional: true
+            - name: APMINSIGHT_APP_NAME
+              value: "ZylkerBank-FinancialGateway"
+            - name: APMINSIGHT_APP_PORT
+              value: "8082"
+            - name: CHAOS_SDK_APP_NAME
+              value: "financial-gateway"
+          volumeMounts:
+            - name: s247agent
+              mountPath: /apm
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: financial-gateway
+  namespace: zylkerbank
+  labels:
+    app: financial-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      name: http
+  selector:
+    app: financial-gateway
+---
+
+# ── 5. AI & Risk Intelligence (Python 3.11 / FastAPI / Kafka Consumer) ───────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-risk-service
+  namespace: zylkerbank
+  labels:
+    app: ai-risk-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-risk-service
+  template:
+    metadata:
+      labels:
+        app: ai-risk-service
+        tier: backend
+    spec:
+      volumes:
+        - name: chaos-config
+          hostPath:
+            path: /var/site24x7-labs/faults
+            type: DirectoryOrCreate
+      containers:
+        - name: ai-risk-service
+          image: impazhani/zylkerbank-ai-risk-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+              name: http
+          envFrom:
+            - configMapRef:
+                name: zylkerbank-config
+          env:
+            - name: PORT
+              value: "8083"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: JWT_SECRET
+            - name: INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zylkerbank-secrets
+                  key: INTERNAL_TOKEN
+            - name: CHAOS_SDK_APP_NAME
+              value: "ai-risk-service"
+            - name: APM_APP_NAME
+              value: "ZylkerBank-AIRisk"
+          volumeMounts:
+            - name: chaos-config
+              mountPath: /var/site24x7-labs/faults
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-risk-service
+  namespace: zylkerbank
+  labels:
+    app: ai-risk-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: http
+  selector:
+    app: ai-risk-service

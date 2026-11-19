@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ZylkerBank - Money Transfer and Online Payments Dashboard HTML Template</title>
+
+    <link rel="shortcut icon" href="/assets1/images/fav.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/assets1/css/fontawesome.min.css?v=6.5.1">
+    <link rel="stylesheet" href="/assets1/css/jquery-ui.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/apexcharts.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/nice-select.css">
+    <link rel="stylesheet" href="/assets1/css/arafat-font.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/animate.css">
+    <link rel="stylesheet" href="/assets1/css/style.css?v=2.2">
+</head>
+
+<body>
+    <!-- start preloader -->
+    <div class="preloader" id="preloader"></div>
+    <!-- end preloader -->
+
+    <!-- Scroll To Top Start-->
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+    <!-- Scroll To Top End -->
+
+    <!-- header-section start -->
+    <header class="header-section body-collapse">
+        <div class="overlay">
+            <div class="container-fruid">
+                <div class="row d-flex header-area">
+                    <div class="navbar-area d-flex align-items-center justify-content-between">
+                        <div class="sidebar-icon">
+                            <img src="/assets1/images/icon/menu.png" alt="icon">
+                        </div>
+                        <form action="/transactions" method="get" class="flex-fill"><div class="form-group d-flex align-items-center"><img src="/assets1/images/icon/search.png" alt="icon"><input type="text" name="q" placeholder="Type to search..."></div></form>
+                        <div class="dashboard-nav">
+                            <div class="single-item language-area">
+                                <div class="language-btn">
+                                    <img src="/assets1/images/icon/lang.png" alt="icon">
+                                </div>
+                                <ul class="main-area language-content">
+                                    <li>English</li>
+                                    <li>Hindi</li>
+                                    <li class="active">English (US)</li>
+                                    <li>Japanese</li>
+                                    <li>Kannada</li>
+                                    <li>Lithuanian</li>
+                                </ul>
+                            </div>
+                            <div class="single-item notifications-area">
+                                <div class="notifications-btn">
+                                    <img src="/assets1/images/icon/bell.png" class="bell-icon" alt="icon">
+                                </div>
+                                <div class="main-area notifications-content">
+                                    <div class="head-area d-flex justify-content-between">
+                                        <h5>Notifications</h5>
+                                        <span class="mdr">4</span>
+                                    </div>
+                                    <ul>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-1.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$134.00</b> from <b>Anna
+                                                            Green</b></p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-2.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr"><b>James Deed</b> requested a payment of
+                                                        <b>£890.00</b>
+                                                    </p>
+                                                    <p class="mdr time-area">08.09AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/master-card.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">Your new payment method has beed added successfully
+                                                    </p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-3.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$250.00</b> from Goerge Michael
+                                                    </p>
+                                                    <p class="mdr time-area">Yesterday</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="single-item user-area">
+                                <div class="profile-area d-flex align-items-center">
+                                    <span class="user-profile">
+                                        <img src="/assets1/images/avatar.png" alt="User">
+                                    </span>
+                                    <i class="fa-solid fa-caret-down"></i>
+                                </div>
+                                <div class="main-area user-content">
+                                    <div class="head-area d-flex align-items-center">
+                                        <div class="profile-img">
+                                            <img src="/assets1/images/avatar-2.png" alt="User">
+                                        </div>
+                                        <div class="profile-head">
+                                            <a href="/account">
+                                                <h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5>
+                                            </a>
+                                            <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span></small></p>
+                                        </div>
+                                    </div>
+                                    <ul>
+                                        <li class="border-area">
+                                            <a href="/dashboard"><i class="fa-solid fa-user"></i>Dashboard</a>
+                                        </li>
+                                        <li class="border-area">
+                                            <a href="/account"><i class="fa-solid fa-gear"></i>Settings</a>
+                                        </li>
+                                        <li>
+                                            <form action="/logout" method="post" style="margin:0;padding:0;">
+                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:12px;"></i>Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-wrapper">
+                        <div class="close-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="sidebar-logo">
+                            <a href="/dashboard"><img src="/assets1/images/logo.png" alt="logo"></a>
+                        </div>
+                        <ul>
+                            <li>
+                                <a href="/dashboard">
+                                    <img src="/assets1/images/icon/dashboard.png" alt="Dashboard"> <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transactions">
+                                    <img src="/assets1/images/icon/transactions.png" alt="Transactions"> <span>Transactions</span>
+                                </a>
+                            </li>
+                            <li class="active">
+                                <a href="/transfer/step-1">
+                                    <img src="/assets1/images/icon/pay.png" alt="Pay"> <span>Pay</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/step-1">
+                                    <img src="/assets1/images/icon/receive.png" alt="Receive"> <span>Receive</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/requests">
+                                    <img src="/assets1/images/icon/recipients.png" alt="Requests"> <span>Requests</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/cards">
+                                    <img src="/assets1/images/icon/deposit.png" alt="Cards"> <span>Cards</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="bottom-item">
+                            <li>
+                                <a href="/account">
+                                    <img src="/assets1/images/icon/account.png" alt="Account"> <span>Account</span>
+                                </a>
+                            </li>
+                            <li>
+                                <form action="/logout" method="post" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                    <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                        <img src="/assets1/images/icon/quit.png" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                        <div class="pt-120">
+                            <div class="invite-now">
+                                <div class="img-area">
+                                    <img src="/assets1/images/invite-now-illus.png" alt="Image">
+                                </div>
+                                <p>Invite your friend and get $25</p>
+                                <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-section end -->
+
+    <!-- Dashboard Section start -->
+    <section class="dashboard-section body-collapse pay step">
+        <div class="overlay pt-120">
+            <div class="container-fruid">
+                <div class="main-content">
+                    <div th:if="${flashError != null}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                        <strong th:text="${flashError}">Error</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="head-area d-flex align-items-center justify-content-between">
+                        <h4>Make a Payment</h4>
+                        <div class="icon-area">
+                            <img src="/assets1/images/icon/support-icon.png" alt="icon">
+                        </div>
+                    </div>
+                    <div class="choose-recipient">
+                        <div class="step-area">
+                            <span class="mdr">Step 1 of 3</span>
+                            <h5>Choose Recipient</h5>
+                        </div>
+                        <div class="recipient-list">
+                            <button class="my-recipients active">
+                                <span class="icon-area">
+                                    <i class="icon-f-user"></i>
+                                </span>
+                                <span>My Recipients</span>
+                            </button>
+                            <button data-bs-toggle="modal" data-bs-target="#recipientsMod">
+                                <span class="icon-area">
+                                    <i class="icon-e-plus"></i>
+                                </span>
+                                <span>New Recipients</span>
+                            </button>
+                            <button>
+                                <span class="icon-area">
+                                    <i class="icon-f-user"></i>
+                                </span>
+                                <span>Send to myself</span>
+                            </button>
+                        </div>
+                        <p class="recipients-item">200 Recipients</p>
+                    </div>
+                    
+                    <form method="post" action="/transfer/step-1" class="mt-4 mb-4">
+                        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <div class="single-input">
+                                    <label for="recipientAccount" class="fw-bold mb-2">Recipient Account Number</label>
+                                    <input type="text" name="recipientAccount" id="recipientAccount" class="form-control" placeholder="Enter recipient 10-13 digit account number" th:value="${wizard != null ? wizard.recipientAccount : ''}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="single-input">
+                                    <label for="recipientName" class="fw-bold mb-2">Recipient Name (Optional)</label>
+                                    <input type="text" name="recipientName" id="recipientName" class="form-control" placeholder="e.g. Sam Franks" th:value="${wizard != null ? wizard.recipientName : ''}">
+                                </div>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" class="cmn-btn">Continue to Amount &rarr;</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="choose-recipient mt-40">
+                        <div class="step-area">
+                            <span class="mdr">Quick Contacts</span>
+                            <h5>Demo Accounts in Ledger</h5>
+                        </div>
+                    </div>
+                    <div class="user-select">
+                        <div class="single-user">
+                            <div class="left d-flex align-items-center">
+                                <div class="img-area"><img src="/assets1/images/profile-1.png" alt="image"></div>
+                                <div class="text-area">
+                                    <p>Sam Franks</p>
+                                    <span class="mdr">Account: 2171039012431</span>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <a href="javascript:void(0)" onclick="document.getElementById('recipientAccount').value='2171039012431'; document.getElementById('recipientName').value='Sam Franks';">Choose</a>
+                            </div>
+                        </div>
+                        <div class="single-user">
+                            <div class="left d-flex align-items-center">
+                                <div class="img-area"><img src="/assets1/images/profile-2.png" alt="image"></div>
+                                <div class="text-area">
+                                    <p>Jerry Holt</p>
+                                    <span class="mdr">Account: 2171126724714</span>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <a href="javascript:void(0)" onclick="document.getElementById('recipientAccount').value='2171126724714'; document.getElementById('recipientName').value='Jerry Holt';">Choose</a>
+                            </div>
+                        </div>
+                        <div class="single-user">
+                            <div class="left d-flex align-items-center">
+                                <div class="img-area"><img src="/assets1/images/profile-3.png" alt="image"></div>
+                                <div class="text-area">
+                                    <p>Gemma Norton</p>
+                                    <span class="mdr">Account: 2172595575378</span>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <a href="javascript:void(0)" onclick="document.getElementById('recipientAccount').value='2172595575378'; document.getElementById('recipientName').value='Gemma Norton';">Choose</a>
+                            </div>
+                        </div>
+                        <div class="single-user">
+                            <div class="left d-flex align-items-center">
+                                <div class="img-area"><img src="/assets1/images/profile-4.png" alt="image"></div>
+                                <div class="text-area">
+                                    <p>Charles Martin Jr</p>
+                                    <span class="mdr">Account: 2171066657962</span>
+                                </div>
+                            </div>
+                            <div class="right">
+                                <a href="javascript:void(0)" onclick="document.getElementById('recipientAccount').value='2171066657962'; document.getElementById('recipientName').value='Charles Martin Jr';">Choose</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Dashboard Section end -->
+
+    <!-- Add Recipients Popup start -->
+    <div class="add-recipients">
+        <div class="container-fruid">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="modal fade" id="recipientsMod" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header justify-content-between">
+                                    <h6>Add Recipients</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <ul class="nav nav-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="company-tab" data-bs-toggle="tab" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="true">
+                                            <span class="icon-area">
+                                                <img src="/assets1/images/icon/company-icon.png" alt="icon">
+                                            </span>
+                                            Company
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab" aria-controls="individual" aria-selected="false">
+                                            <span class="icon-area">
+                                                <img src="/assets1/images/icon/individual-icon.png" alt="icon">
+                                            </span>
+                                            Individual
+                                        </button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="company" role="tabpanel" aria-labelledby="company-tab">
+                                        <div class="image-area mt-30 text-center">
+                                            <img src="/assets1/images/user-profile.png" alt="icon">
+                                        </div>
+                                        <form action="#">
+                                            <div class="row justify-content-center">
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="companyfname">First Name</label>
+                                                        <input type="text" id="companyfname" placeholder="Dana">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="companylname">Last Name</label>
+                                                        <input type="text" id="companylname" placeholder="Patton">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="companyemail">Email</label>
+                                                        <input type="text" id="companyemail" placeholder="danap24@gmail.com">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="companyphone">Phone</label>
+                                                        <div class="select-area d-flex align-items-center">
+                                                            <select>
+                                                                <option value="1">+1</option>
+                                                                <option value="2">+2</option>
+                                                                <option value="3">+3</option>
+                                                            </select>
+                                                            <input type="text" id="companyphone" placeholder="(070) 4567-8800">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="single-input">
+                                                        <label>Select Country</label>
+                                                        <select>
+                                                            <option value="1">Canada</option>
+                                                            <option value="2">Japan</option>
+                                                            <option value="3">Germany</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="btn-border w-100">
+                                                        <button class="cmn-btn w-100">Add Recipients</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="tab-pane fade" id="individual" role="tabpanel" aria-labelledby="individual-tab">
+                                        <div class="image-area mt-30 text-center">
+                                            <img src="/assets1/images/user-profile.png" alt="icon">
+                                        </div>
+                                        <form action="#">
+                                            <div class="row justify-content-center">
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="fname">First Name</label>
+                                                        <input type="text" id="fname" placeholder="Dana">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="lname">Last Name</label>
+                                                        <input type="text" id="lname" placeholder="Patton">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="email">Email</label>
+                                                        <input type="text" id="email" placeholder="danap24@gmail.com">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="single-input">
+                                                        <label for="phone">Phone</label>
+                                                        <div class="select-area d-flex align-items-center">
+                                                            <select>
+                                                                <option value="1">+1</option>
+                                                                <option value="2">+2</option>
+                                                                <option value="3">+3</option>
+                                                            </select>
+                                                            <input type="text" id="phone" placeholder="(070) 4567-8800">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="single-input">
+                                                        <label>Select Country</label>
+                                                        <select>
+                                                            <option value="1">Canada</option>
+                                                            <option value="2">Japan</option>
+                                                            <option value="3">Germany</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="btn-border w-100">
+                                                        <button class="cmn-btn w-100">Add Recipients</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Transactions Popup start -->
+
+    <!--==================================================================-->
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+    <script src="/assets1/js/jquery.min.js"></script>
+    <script src="/assets1/js/bootstrap.min.js"></script>
+    <script src="/assets1/js/fontawesome.js?v=6.5.1"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="/assets1/js/jquery-ui.js"></script>
+    <script src="/assets1/js/plugin/apexcharts.js"></script>
+    <script src="/assets1/js/plugin/jquery.nice-select.min.js"></script>
+    <script src="/assets1/js/plugin/waypoint.min.js"></script>
+    <script src="/assets1/js/plugin/wow.min.js"></script>
+    <script src="/assets1/js/plugin/plugin.js"></script>
+    <script src="/assets1/js/main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+--find-links ../../../../chaos-libs/python
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.10.4
+asyncpg==0.30.0
+aiokafka==0.12.0
+PyJWT==2.10.1
+tzdata==2024.2
+psycopg2-binary==2.9.10
+openai>=1.66.1,<2
+litellm==1.65.0
+site24x7-chaos[fastapi]==1.2.5

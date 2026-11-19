@@ -1,0 +1,282 @@
+
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ZylkerBank - Money Transfer and Online Payments Dashboard HTML Template</title>
+
+    <link rel="shortcut icon" href="/assets1/images/fav.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/assets1/css/fontawesome.min.css?v=6.5.1">
+    <link rel="stylesheet" href="/assets1/css/jquery-ui.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/apexcharts.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/nice-select.css">
+    <link rel="stylesheet" href="/assets1/css/arafat-font.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/animate.css">
+    <link rel="stylesheet" href="/assets1/css/style.css?v=2.2">
+</head>
+
+<body>
+    <!-- start preloader -->
+    <div class="preloader" id="preloader"></div>
+    <!-- end preloader -->
+
+    <!-- Scroll To Top Start-->
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+    <!-- Scroll To Top End -->
+
+    <!-- header-section start -->
+    <header class="header-section body-collapse">
+        <div class="overlay">
+            <div class="container-fruid">
+                <div class="row d-flex header-area">
+                    <div class="navbar-area d-flex align-items-center justify-content-between">
+                        <div class="sidebar-icon">
+                            <img src="/assets1/images/icon/menu.png" alt="icon">
+                        </div>
+                        <form action="/transactions" method="get" class="flex-fill"><div class="form-group d-flex align-items-center"><img src="/assets1/images/icon/search.png" alt="icon"><input type="text" name="q" placeholder="Type to search..."></div></form>
+                        <div class="dashboard-nav">
+                            <div class="single-item language-area">
+                                <div class="language-btn">
+                                    <img src="/assets1/images/icon/lang.png" alt="icon">
+                                </div>
+                                <ul class="main-area language-content">
+                                    <li>English</li>
+                                    <li>Hindi</li>
+                                    <li class="active">English (US)</li>
+                                    <li>Japanese</li>
+                                    <li>Kannada</li>
+                                    <li>Lithuanian</li>
+                                </ul>
+                            </div>
+                            <div class="single-item notifications-area">
+                                <div class="notifications-btn">
+                                    <img src="/assets1/images/icon/bell.png" class="bell-icon" alt="icon">
+                                </div>
+                                <div class="main-area notifications-content">
+                                    <div class="head-area d-flex justify-content-between">
+                                        <h5>Notifications</h5>
+                                        <span class="mdr">4</span>
+                                    </div>
+                                    <ul>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-1.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$134.00</b> from <b>Anna
+                                                            Green</b></p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-2.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr"><b>James Deed</b> requested a payment of
+                                                        <b>£890.00</b>
+                                                    </p>
+                                                    <p class="mdr time-area">08.09AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/master-card.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">Your new payment method has beed added successfully
+                                                    </p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-3.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$250.00</b> from Goerge
+                                                        Michael</p>
+                                                    <p class="mdr time-area">Yesterday</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="single-item user-area">
+                                <div class="profile-area d-flex align-items-center">
+                                    <span class="user-profile">
+                                        <img src="/assets1/images/avatar.png" alt="User">
+                                    </span>
+                                    <i class="fa-solid fa-caret-down"></i>
+                                </div>
+                                <div class="main-area user-content">
+                                    <div class="head-area d-flex align-items-center">
+                                        <div class="profile-img">
+                                            <img src="/assets1/images/avatar-2.png" alt="User">
+                                        </div>
+                                        <div class="profile-head">
+                                            <a href="/account">
+                                                <h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5>
+                                            </a>
+                                            <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span></small></p>
+                                        </div>
+                                    </div>
+                                    <ul>
+                                        <li class="border-area">
+                                            <a href="/dashboard"><i class="fa-solid fa-user"></i>Dashboard</a>
+                                        </li>
+                                        <li class="border-area">
+                                            <a href="/account"><i class="fa-solid fa-gear"></i>Settings</a>
+                                        </li>
+                                        <li>
+                                            <form action="/logout" method="post" style="margin:0;padding:0;">
+                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:12px;"></i>Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-wrapper">
+                        <div class="close-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="sidebar-logo">
+                            <a href="/dashboard"><img src="/assets1/images/logo.png" alt="logo"></a>
+                        </div>
+                        <ul>
+                            <li>
+                                <a href="/dashboard">
+                                    <img src="/assets1/images/icon/dashboard.png" alt="Dashboard"> <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transactions">
+                                    <img src="/assets1/images/icon/transactions.png" alt="Transactions"> <span>Transactions</span>
+                                </a>
+                            </li>
+                            <li class="active">
+                                <a href="/transfer/step-1">
+                                    <img src="/assets1/images/icon/pay.png" alt="Pay"> <span>Pay</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/step-1">
+                                    <img src="/assets1/images/icon/receive.png" alt="Receive"> <span>Receive</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/requests">
+                                    <img src="/assets1/images/icon/recipients.png" alt="Requests"> <span>Requests</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/cards">
+                                    <img src="/assets1/images/icon/deposit.png" alt="Cards"> <span>Cards</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="bottom-item">
+                            <li>
+                                <a href="/account">
+                                    <img src="/assets1/images/icon/account.png" alt="Account"> <span>Account</span>
+                                </a>
+                            </li>
+                            <li>
+                                <form action="/logout" method="post" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                    <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                        <img src="/assets1/images/icon/quit.png" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                        <div class="pt-120">
+                            <div class="invite-now">
+                                <div class="img-area">
+                                    <img src="/assets1/images/invite-now-illus.png" alt="Image">
+                                </div>
+                                <p>Invite your friend and get $25</p>
+                                <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-section end -->
+
+    <!-- Dashboard Section start -->
+    <section class="dashboard-section body-collapse pay step step-2 step-3 receive-3">
+        <div class="overlay pt-120">
+            <div class="container-fruid">
+                <div class="main-content">
+                    <div class="head-area d-flex align-items-center justify-content-between">
+                        <h4>Request a Payment</h4>
+                        <div class="icon-area">
+                            <img src="/assets1/images/icon/support-icon.png" alt="icon">
+                        </div>
+                    </div>
+                    <div class="request-submitted pb-120 text-center">
+                        <div class="top-area">
+                            <div class="icon-area">
+                                <img src="/assets1/images/icon/success.png" alt="icon">
+                            </div>
+                            <h3>Payment Sent Successfully!</h3>
+                            <p class="fs-5 mt-2">Amount: <b class="text-success">$<span th:text="${receipt != null ? receipt.amount : '0.00'}">0.00</span> USD</b></p>
+                            <div class="my-4 p-4 bg-light rounded d-inline-block text-start" style="min-width:320px;">
+                                <p class="mb-1"><b>Transaction Ref:</b> <span th:text="${receipt != null ? receipt.transactionRef : ''}">TRX123456</span></p>
+                                <p class="mb-1"><b>Recipient Account:</b> <span th:text="${receipt != null ? receipt.counterpartyAccount : ''}">2171039012431</span></p>
+                                <p class="mb-1"><b>New Available Balance:</b> $<span th:text="${receipt != null ? receipt.newBalance : ''}">0.00</span></p>
+                                <p class="mb-0"><b>Timestamp:</b> <span th:text="${receipt != null ? receipt.timestamp : ''}">Now</span></p>
+                            </div>
+                            <div class="mt-4">
+                                <a href="/dashboard" class="cmn-btn me-2">Back to Dashboard</a>
+                                <a href="/transactions" class="cmn-btn active">View Statement</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Dashboard Section end -->
+
+    <!--==================================================================-->
+    <script src="/assets1/js/jquery.min.js"></script>
+    <script src="/assets1/js/bootstrap.min.js"></script>
+    <script src="/assets1/js/fontawesome.js?v=6.5.1"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="/assets1/js/jquery-ui.js"></script>
+    <script src="/assets1/js/plugin/apexcharts.js"></script>
+    <script src="/assets1/js/plugin/jquery.nice-select.min.js"></script>
+    <script src="/assets1/js/plugin/waypoint.min.js"></script>
+    <script src="/assets1/js/plugin/wow.min.js"></script>
+    <script src="/assets1/js/plugin/plugin.js"></script>
+    <script src="/assets1/js/main.js"></script>
+</body>
+
+</html>
