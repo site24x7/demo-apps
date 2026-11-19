@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Service Notice')}"></head>
+<body>
+<th:block th:replace="~{fragments/layout :: preloader}"></th:block>
+<th:block th:replace="~{fragments/layout :: publicHeader}"></th:block>
+
+<!-- Error Section start -->
+<section class="error py-5">
+    <div class="overlay pt-120 pb-120">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6 col-md-8 text-center">
+                    <div class="card p-5 border-0 shadow-sm rounded-4 bg-white">
+                        <div class="mb-4">
+                            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 64px;"></i>
+                        </div>
+                        <h3 class="mb-2">Service Temporarily Unavailable</h3>
+                        <p class="text-muted" th:text="${errorMessage}">Unable to complete your request right now. Please try again in a few moments.</p>
+
+                        <div class="p-3 bg-light rounded text-start mb-4" th:if="${errorCode != null}">
+                            <div class="small text-muted">Error Reference: <code th:text="${errorCode}">SERVICE_UNAVAILABLE</code></div>
+                            <div class="small text-muted" th:if="${httpStatus != null}">HTTP Status: <span th:text="${httpStatus}">503</span></div>
+                        </div>
+
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary">Go Back</a>
+                            <a th:href="@{/dashboard}" class="cmn-btn">Return to Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Error Section end -->
+
+<th:block th:replace="~{fragments/layout :: footer}"></th:block>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Card Details - ZylkerBank</title>
+
+    <link rel="shortcut icon" href="/assets1/images/fav.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/assets1/css/fontawesome.min.css?v=6.5.1">
+    <link rel="stylesheet" href="/assets1/css/jquery-ui.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/apexcharts.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/nice-select.css">
+    <link rel="stylesheet" href="/assets1/css/arafat-font.css">
+    <link rel="stylesheet" href="/assets1/css/plugin/animate.css">
+    <link rel="stylesheet" href="/assets1/css/style.css?v=2.2">
+</head>
+
+<body>
+    <!-- start preloader -->
+    <div class="preloader" id="preloader"></div>
+    <!-- end preloader -->
+
+    <!-- Scroll To Top Start-->
+    <a href="javascript:void(0)" class="scrollToTop"><i class="fas fa-angle-double-up"></i></a>
+    <!-- Scroll To Top End -->
+
+    <!-- header-section start -->
+    <header class="header-section body-collapse">
+        <div class="overlay">
+            <div class="container-fruid">
+                <div class="row d-flex header-area">
+                    <div class="navbar-area d-flex align-items-center justify-content-between">
+                        <div class="sidebar-icon">
+                            <img src="/assets1/images/icon/menu.png" alt="icon">
+                        </div>
+                        <form action="/transactions" method="get" class="flex-fill">
+                            <div class="form-group d-flex align-items-center">
+                                <img src="/assets1/images/icon/search.png" alt="icon">
+                                <input type="text" name="q" placeholder="Type to search...">
+                            </div>
+                        </form>
+                        <div class="dashboard-nav">
+                            <div class="single-item language-area">
+                                <div class="language-btn">
+                                    <img src="/assets1/images/icon/lang.png" alt="icon">
+                                </div>
+                                <ul class="main-area language-content">
+                                    <li>English</li>
+                                    <li>Hindi</li>
+                                    <li>English (US)</li>
+                                    <li>Japanese</li>
+                                    <li>Kannada</li>
+                                    <li>Lithuanian</li>
+                                </ul>
+                            </div>
+                            <div class="single-item notifications-area">
+                                <div class="notifications-btn">
+                                    <img src="/assets1/images/icon/bell.png" class="bell-icon" alt="icon">
+                                </div>
+                                <div class="main-area notifications-content">
+                                    <div class="head-area d-flex justify-content-between">
+                                        <h5>Notifications</h5>
+                                        <span class="mdr">4</span>
+                                    </div>
+                                    <ul>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-1.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$134.00</b> from <b>Anna
+                                                            Green</b></p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-2.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr"><b>James Deed</b> requested a payment of
+                                                        <b>£890.00</b>
+                                                    </p>
+                                                    <p class="mdr time-area">08.09AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/master-card.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">Your new payment method has beed added successfully
+                                                    </p>
+                                                    <p class="mdr time-area">09.39AM</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)" class="d-flex">
+                                                <div class="img-area">
+                                                    <img src="/assets1/images/user-3.png" class="max-un" alt="image">
+                                                </div>
+                                                <div class="text-area">
+                                                    <p class="mdr">You received a payment of <b>$250.00</b> from Goerge Michael
+                                                    </p>
+                                                    <p class="mdr time-area">Yesterday</p>
+                                                </div>
+                                            </a>
+                                            <i class="fa-solid fa-caret-right"></i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="single-item user-area">
+                                <div class="profile-area d-flex align-items-center">
+                                    <span class="user-profile">
+                                        <img src="/assets1/images/avatar.png" alt="User">
+                                    </span>
+                                    <i class="fa-solid fa-caret-down"></i>
+                                </div>
+                                <div class="main-area user-content">
+                                    <div class="head-area d-flex align-items-center">
+                                        <div class="profile-img">
+                                            <img src="/assets1/images/avatar-2.png" alt="User">
+                                        </div>
+                                        <div class="profile-head">
+                                            <a href="/account">
+                                                <h5 th:text="${user != null ? user.fullName : 'Customer'}">Destiny Franks</h5>
+                                            </a>
+                                            <p class="wallet-id"><small>Account No. <span th:text="${user != null ? user.accountNumber : '2178392293767'}">2178392293767</span></small></p>
+                                        </div>
+                                    </div>
+                                    <ul>
+                                        <li class="border-area">
+                                            <a href="/dashboard"><i class="fa-solid fa-user"></i>Dashboard</a>
+                                        </li>
+                                        <li class="border-area">
+                                            <a href="/account"><i class="fa-solid fa-gear"></i>Settings</a>
+                                        </li>
+                                        <li>
+                                            <form action="/logout" method="post" style="margin:0;padding:0;">
+                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                <button type="submit" style="background:none;border:none;padding:10px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:12px;"></i>Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sidebar-wrapper">
+                        <div class="close-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="sidebar-logo">
+                            <a href="dashboard.html"><img src="/assets1/images/logo.png" alt="logo"></a>
+                        </div>
+                        <ul>
+                            <li>
+                                <a href="/dashboard">
+                                    <img src="/assets1/images/icon/dashboard.png" alt="Dashboard"> <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transactions">
+                                    <img src="/assets1/images/icon/transactions.png" alt="Transactions"> <span>Transactions</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transfer/step-1">
+                                    <img src="/assets1/images/icon/pay.png" alt="Pay"> <span>Pay</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/step-1">
+                                    <img src="/assets1/images/icon/receive.png" alt="Receive"> <span>Receive</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/receive/requests">
+                                    <img src="/assets1/images/icon/recipients.png" alt="Requests"> <span>Requests</span>
+                                </a>
+                            </li>
+                            <li class="active">
+                                <a href="/cards">
+                                    <img src="/assets1/images/icon/deposit.png" alt="Cards"> <span>Cards</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="bottom-item">
+                            <li>
+                                <a href="/account">
+                                    <img src="/assets1/images/icon/account.png" alt="Account"> <span>Account</span>
+                                </a>
+                            </li>
+                            <li>
+                                <form action="/logout" method="post" style="margin:0;padding:0;">
+                                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                    <button type="submit" style="background:none;border:none;padding:12px 20px;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;width:100%;">
+                                        <img src="/assets1/images/icon/quit.png" alt="Quit" style="margin-right:12px;"> <span>Quit</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                        <div class="pt-120">
+                            <div class="invite-now">
+                                <div class="img-area">
+                                    <img src="/assets1/images/invite-now-illus.png" alt="Image">
+                                </div>
+                                <p>Invite your friend and get $25</p>
+                                <a href="javascript:void(0)" class="cmn-btn">Invite Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-section end -->
+    <!-- Dashboard Section start -->
+    <section class="dashboard-section body-collapse">
+        <div class="overlay pt-120 pb-120">
+            <div class="container-fruid">
+                <div th:if="${flashError != null}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <strong th:text="${flashError}">Error</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${flashSuccess != null}" class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <strong th:text="${flashSuccess}">Success</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${flashInfo != null}" class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+                    <strong th:text="${flashInfo}">Info</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <div class="row">
+                    <div class="col-xl-11 col-lg-11">
+                        <div class="section-content">
+                            <div class="transactions-popup">
+                                <div class="container-fruid">
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                            <div class="card p-4 border-0 shadow-sm bg-white" style="border-radius:15px;">
+                                                <div class="modal-header justify-content-between border-bottom pb-3 mb-4">
+                                                    <h5>Virtual Card Management</h5>
+                                                    <a href="/cards" class="cmn-btn py-1 px-3" style="font-size:14px;">&larr; Back to All Cards</a>
+                                                </div>
+                                                <div class="main-content">
+                                                    <div class="row">
+                                                        <!-- Card Visual Column -->
+                                                        <div class="col-sm-5 text-center">
+                                                            <div class="icon-area p-3">
+                                                                <div class="col-12">
+                                                                    <div class="card__main">
+                                                                        <div th:class="${card.cardType == 'MASTERCARD' ? 'masterCard' : 'visaCard'}">
+                                                                            <div class="top_card">
+                                                                                <span class="visa" th:text="${card.cardType}">VISA</span>
+                                                                                <div class="logo">
+                                                                                    <img src="/assets1/images/logo.png" class="logo" alt="logo">
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="middle_card" style="margin-top: 35px;">
+                                                                                <span class="chip"></span>
+                                                                                <div class="card_number" th:text="${card.cardNumberMasked}">4111 **** **** 1234</div>
+                                                                            </div>
+                                                                            <div class="bottom_card">
+                                                                                <div class="card_info">
+                                                                                    <div class="card_holder_name" style="text-align: left;">$<span th:text="${card.formattedBalance}">0.00</span></div>
+                                                                                    <div class="card_holder_name" th:text="${card.cardHolderName}">Destiny Franks</div>
+                                                                                </div>
+                                                                                <div class="card_info">
+                                                                                    <div class="card_holder_info">
+                                                                                        <span class="expire_month" th:text="${card.formattedExpiry}">12/28</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="back_card">
+                                                                            <div class="top_card">
+                                                                                <span class="black_strip"></span>
+                                                                                <div class="cvc_strip">
+                                                                                    <span class="cvc_number">***</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="bottom_card">
+                                                                                <div class="flex">
+                                                                                    <span class="sticker"></span>
+                                                                                    <div class="logo1">
+                                                                                        <span></span>
+                                                                                        <span></span>
+                                                                                        <span></span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Card Details & Actions Column -->
+                                                        <div class="col-sm-7">
+                                                            <div class="right-area">
+                                                                <h6>Card Details &amp; Controls</h6>
+                                                                <ul class="payment-details">
+                                                                    <li>
+                                                                        <span>Current Balance</span>
+                                                                        <b>$<span th:text="${card.formattedBalance}">0.00</span> USD</b>
+                                                                    </li>
+                                                                    <li>
+                                                                        <span>Cardholder Name</span>
+                                                                        <b th:text="${card.cardHolderName}">Destiny Franks</b>
+                                                                    </li>
+                                                                    <li>
+                                                                        <span>Card Type</span>
+                                                                        <b th:text="${card.cardType}">VISA</b>
+                                                                    </li>
+                                                                    <li>
+                                                                        <span>Card Number</span>
+                                                                        <b th:text="${card.cardNumberMasked}">4111 **** **** 1234</b>
+                                                                    </li>
+                                                                    <li>
+                                                                        <span>Expiry Date</span>
+                                                                        <b th:text="${card.formattedExpiry}">12/28</b>
+                                                                    </li>
+                                                                    <li>
+                                                                        <span>Status</span>
+                                                                        <b th:if="${card.isFrozen}" class="text-warning">FROZEN</b>
+                                                                        <b th:unless="${card.isFrozen}" class="text-success">ACTIVE</b>
+                                                                    </li>
+                                                                    <li class="pt-3">
+                                                                        <div class="d-flex flex-wrap gap-2">
+                                                                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fundModal">
+                                                                                Fund Card
+                                                                            </button>
+                                                                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                                                                                Withdraw Funds
+                                                                            </button>
+                                                                            <form th:if="${!card.isFrozen}" th:action="@{/cards/{id}/freeze(id=${card.cardId})}" method="post" class="d-inline">
+                                                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                                                <button type="submit" class="btn btn-warning">Freeze Card</button>
+                                                                            </form>
+                                                                            <form th:if="${card.isFrozen}" th:action="@{/cards/{id}/unfreeze(id=${card.cardId})}" method="post" class="d-inline">
+                                                                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                                                                <button type="submit" class="btn btn-outline-success">Unfreeze Card</button>
+                                                                            </form>
+                                                                        </div>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fund Card Modal -->
+    <div class="modal fade" id="fundModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header justify-content-between">
+                    <h6>Fund Virtual Card</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/cards/{id}/fund(id=${card.cardId})}" method="POST">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <div class="modal-body">
+                        <div class="single-input mb-3">
+                            <label class="form-label">Available Bank Balance</label>
+                            <input type="text" class="form-control" th:value="'$' + ${user.formattedBalance} + ' USD'" readonly>
+                        </div>
+                        <div class="single-input mb-3">
+                            <label for="fundAmount" class="form-label">Amount to Load ($)</label>
+                            <input type="number" step="0.01" min="1.00" name="amount" id="fundAmount" class="form-control" placeholder="50.00" required>
+                        </div>
+                        <div class="single-input mb-3">
+                            <label for="fundPin" class="form-label">Security PIN</label>
+                            <input type="password" name="pin" id="fundPin" maxlength="4" class="form-control" placeholder="••••" required style="font-size:20px; letter-spacing:6px; text-align:center;">
+                            <small class="text-muted">Default demo PIN is 1234.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="cmn-btn">Confirm Transfer to Card</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div class="modal fade" id="withdrawModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header justify-content-between">
+                    <h6>Withdraw from Card to Bank Account</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/cards/{id}/withdraw(id=${card.cardId})}" method="POST">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <div class="modal-body">
+                        <div class="single-input mb-3">
+                            <label class="form-label">Card Available Balance</label>
+                            <input type="text" class="form-control" th:value="'$' + ${card.formattedBalance} + ' USD'" readonly>
+                        </div>
+                        <div class="single-input mb-3">
+                            <label for="withdrawAmount" class="form-label">Amount to Withdraw ($)</label>
+                            <input type="number" step="0.01" min="1.00" name="amount" id="withdrawAmount" class="form-control" placeholder="25.00" required>
+                        </div>
+                        <div class="single-input mb-3">
+                            <label for="withdrawPin" class="form-label">Security PIN</label>
+                            <input type="password" name="pin" id="withdrawPin" maxlength="4" class="form-control" placeholder="••••" required style="font-size:20px; letter-spacing:6px; text-align:center;">
+                            <small class="text-muted">Default demo PIN is 1234.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="cmn-btn">Confirm Withdrawal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<!--==================================================================-->
+    <script src="/assets1/js/jquery.min.js"></script>
+    <script src="/assets1/js/bootstrap.min.js"></script>
+    <script src="/assets1/js/fontawesome.js?v=6.5.1"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="/assets1/js/jquery-ui.js"></script>
+    <script src="/assets1/js/plugin/apexcharts.js"></script>
+    <script src="/assets1/js/plugin/jquery.nice-select.min.js"></script>
+    <script src="/assets1/js/plugin/waypoint.min.js"></script>
+    <script src="/assets1/js/plugin/wow.min.js"></script>
+    <script src="/assets1/js/plugin/plugin.js"></script>
+    <script src="/assets1/js/main.js"></script>
+</body>
+
+</html>
